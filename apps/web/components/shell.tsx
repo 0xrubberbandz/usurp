@@ -6,6 +6,7 @@ import { Ticker } from './ticker';
 import { useOnboarding } from './onboarding/context';
 import { money, playerName } from '@/lib/game';
 import { SoundToggle } from './sound-toggle';
+import { LoadingScreen } from './loading-screen';
 
 // Connected: truncated address and test USDC balance; the menu copies the address or disconnects (demo mode adds the
 // round controls). Not connected: "connect" reopens only the connect step of onboarding.
@@ -47,13 +48,16 @@ function GameMirror() {
 
 export function Shell({ children }: { children: ReactNode }) {
   const { open, start } = useOnboarding();
+  const { loading } = useGame();
+  const hidden = open || loading;
   // While onboarding is open the live page stays mounted underneath, inert and set back slightly; it scales up on close.
   // React 18 does not know the inert attribute, so it is set on the element directly.
   const app = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (app.current) app.current.inert = open; }, [open]);
+  useEffect(() => { if (app.current) app.current.inert = hidden; }, [hidden]);
   return <>
     <GameMirror/>
-    <div className={open ? 'app app-behind' : 'app'} ref={app} aria-hidden={open || undefined}>
+    {loading && <LoadingScreen/>}
+    <div className={hidden ? 'app app-behind' : 'app'} ref={app} aria-hidden={hidden || undefined}>
       <header className="site-header">
         <Link href="/" className="wordmark" aria-label="usurp home"><img className="wordmark-crown" src="/brand/crown.svg" alt="" width={30} height={30}/>usurp.</Link>
         <div className="header-actions">

@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { useReducedMotion } from 'framer-motion';
 
-/** A single video outside the keyed slides, so navigation never restarts the loop. */
-export function IntroBackground({ reduced }: { reduced: boolean }) {
+/** Mounted once in the root layout; the intro and main app share the same continuous loop. */
+export function AppBackground() {
+  const reduced = !!useReducedMotion();
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const element = video.current;
@@ -15,7 +17,7 @@ export function IntroBackground({ reduced }: { reduced: boolean }) {
     document.addEventListener('visibilitychange', sync);
     return () => { document.removeEventListener('visibilitychange', sync); element.pause(); };
   }, [reduced]);
-  return <div className="ob-background" aria-hidden="true">
+  return <div className="app-background" aria-hidden="true">
     <video ref={video} autoPlay={!reduced} loop muted playsInline preload={reduced ? 'none' : 'auto'}
       poster="/media/intro-background.webp" disablePictureInPicture disableRemotePlayback tabIndex={-1}>
       <source src="/media/intro-background.mp4" type="video/mp4"/>

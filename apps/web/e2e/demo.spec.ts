@@ -58,7 +58,7 @@ test('onboarding: walkthrough first, then connect a wallet and approve usdc; per
   await expect(overlay).not.toContainText('practice round');
   await expect(overlay.getByRole('button', { name: 'sound effects' })).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
-  const background = overlay.locator('.ob-background video');
+  const background = page.locator('.app-background video');
   const originalVideo = await background.elementHandle();
   await expect.poll(() => background.evaluate(node => (node as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
   // Seek near the end to verify actual looping, then confirm navigation keeps the same playing video.
@@ -98,6 +98,12 @@ test('onboarding: walkthrough first, then connect a wallet and approve usdc; per
   await expect(overlay.getByText(/approved for \$/)).toBeVisible();
   await overlay.getByRole('button', { name: 'take your seat' }).click();
   await expect(overlay).toHaveCount(0);
+  expect(await originalVideo!.evaluate(node => node.isConnected && !(node as HTMLVideoElement).paused)).toBe(true);
+  await expect(background).toHaveCount(1);
+  await page.screenshot({ path: '../../artifacts/app-background-desktop.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: '../../artifacts/app-background-mobile.png' });
+  await page.setViewportSize({ width: 1440, height: 900 });
   expect(await page.evaluate(() => localStorage.getItem('usurp.onboarded'))).toBe('1');
   await page.reload();
   await expect(page.getByRole('button', { name: /take the throne for/ })).toBeVisible();

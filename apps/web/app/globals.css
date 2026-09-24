@@ -23,7 +23,9 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; letter-spacing: -0.3px; -webkit-font-smoothing: antialiased; }
+body { margin: 0; isolation: isolate; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; letter-spacing: -0.3px; -webkit-font-smoothing: antialiased; }
+.app-background { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: url('/media/intro-background.webp') center bottom / cover no-repeat; }
+.app-background video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
 body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 90; opacity: .045; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='180' height='180' filter='url(%23g)'/></svg>"); }
 button, input, a { -webkit-tap-highlight-color: transparent; }
 button, input { font: inherit; letter-spacing: inherit; } /* controls reset letter-spacing by default */
@@ -68,7 +70,15 @@ svg { flex-shrink: 0; }
 html[data-intro] .loading-screen, html[data-intro] .app { visibility: hidden; }
 /* the live page while onboarding is open: set back slightly, then scaled up over 500ms when it closes */
 .app { transition: transform .5s cubic-bezier(.22, 1, .36, 1), opacity .5s cubic-bezier(.22, 1, .36, 1); transform-origin: 50% 40%; }
-.app-behind { transform: scale(.97); opacity: .6; }
+.app-behind { transform: scale(.97); opacity: 0; visibility: hidden; }
+body:has(.ob) .loading-screen { visibility: hidden; }
+.loading-screen { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; min-height: 100dvh; padding: 24px; text-align: center; cursor: progress; }
+.loading-content { display: grid; justify-items: center; gap: 24px; }
+.loading-crown { position: relative; display: grid; place-items: center; width: 120px; height: 120px; }
+.loading-crown img { object-fit: contain; animation: float-crown 3s ease-in-out infinite; }
+.loading-orbit { position: absolute; inset: 0; border: 1px solid rgba(16, 16, 20, .12); border-top-color: var(--ink); border-radius: 50%; animation: loading-orbit 1.6s linear infinite; }
+.loading-content p { font-size: 18px; font-weight: 500; color: var(--ink); }
+@keyframes loading-orbit { to { transform: rotate(360deg); } }
 
 /* the throne: one hero (the pot), one action (the button), a dense core centered between nav and ticker */
 .throne { overflow-x: clip; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 24px; max-width: 720px; width: 100%; margin: 0 auto; }
@@ -168,7 +178,7 @@ html[data-intro] .loading-screen, html[data-intro] .app { visibility: hidden; }
 .eviction-toast button { background: none; color: var(--muted); padding: 0; }
 
 /* ticker: fixed at the bottom edge on every page */
-.ticker { position: fixed; left: 0; right: 0; bottom: 0; height: var(--ticker-h); background: var(--paper); display: flex; align-items: center; gap: 14px; padding: 0 32px; font-size: 14px; z-index: 40; overflow: hidden; }
+.ticker { position: fixed; left: 0; right: 0; bottom: 0; height: var(--ticker-h); background: transparent; display: flex; align-items: center; gap: 14px; padding: 0 32px; font-size: 14px; z-index: 40; overflow: hidden; }
 .ticker-track { flex: 1; min-width: 0; position: relative; height: 100%; display: flex; align-items: center; overflow: hidden; }
 .ticker-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
 .ticker-line strong { color: var(--ink); font-weight: 500; }
@@ -190,9 +200,7 @@ html[data-intro] .loading-screen, html[data-intro] .app { visibility: hidden; }
 .page-intro h1 { font-size: 56px; line-height: 1.02; margin: 12px 0; }
 
 /* onboarding: full-screen introduction over the live page */
-.ob { position: fixed; inset: 0; z-index: 96; isolation: isolate; background: var(--paper); display: flex; flex-direction: column; padding: 16px 24px 20px; overflow: hidden; touch-action: pan-y; }
-.ob-background { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: url('/media/intro-background.webp') center bottom / cover no-repeat; }
-.ob-background video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
+.ob { position: fixed; inset: 0; z-index: 96; isolation: isolate; background: transparent; display: flex; flex-direction: column; padding: 16px 24px 20px; overflow: hidden; touch-action: pan-y; }
 .ob-top { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
 .sound-toggle.sound-toggle-label { display: inline-flex; align-items: center; gap: 7px; width: auto; min-width: 114px; padding: 0 12px; border-radius: 100px; font-size: 13px; font-weight: 500; }
 .ob-link { background: none; font-size: 15px; font-weight: 500; color: var(--muted); padding: 8px 4px; display: inline-flex; align-items: center; }

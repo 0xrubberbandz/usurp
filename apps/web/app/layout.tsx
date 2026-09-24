@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Providers } from '@/components/providers';
 import { Shell } from '@/components/shell';
+import { AppBackground } from '@/components/app-background';
 import './globals.css';
 
 const title = 'usurp';
@@ -29,5 +30,5 @@ const fonts = 'https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@4
 const introScript = "try{if(localStorage.getItem('usurp.onboarded')!=='1')document.documentElement.dataset.intro='1'}catch(e){}";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: introScript }}/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/><link href={fonts} rel="stylesheet"/></head><body><a href="#main-content" className="skip-link">skip to the throne</a><Providers><Shell>{children}</Shell></Providers></body></html>;
+  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: introScript }}/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/><link href={fonts} rel="stylesheet"/></head><body><AppBackground/><a href="#main-content" className="skip-link">skip to the throne</a><Providers><Shell>{children}</Shell></Providers></body></html>;
 }

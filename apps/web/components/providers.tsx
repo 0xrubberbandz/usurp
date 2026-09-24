@@ -5,7 +5,8 @@ import { DemoProvider } from './demo-provider';
 import { OnboardingProvider } from './onboarding/context';
 import { OnboardingOverlay } from './onboarding/overlay';
 import { listenForSoundGestures } from '@/lib/sound';
-const LiveProvider = dynamic(() => import('./live-provider'), { ssr: false, loading: () => <div className="loading-screen">finding the throne…</div> });
+import { LoadingScreen } from './loading-screen';
+const LiveProvider = dynamic(() => import('./live-provider'), { ssr: false, loading: LoadingScreen });
 // Onboarding wraps the game provider rather than living inside it, so a first visit gets the walkthrough right away
 // instead of waiting for the wallet stack to load.
 export function Providers({ children }: { children: ReactNode }) {

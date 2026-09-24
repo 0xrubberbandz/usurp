@@ -4,13 +4,13 @@ const css = readFileSync(new URL('../apps/web/app/globals.css', import.meta.url)
 const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
 const selectorsWith = test => rules.filter(([selector, body]) => !selector.endsWith(':root') && test(body)).map(([selector]) => selector).sort();
 // Holo in CSS: holder names only. The crown artwork and the 3D dome carry it in their own materials.
-assert.deepEqual(selectorsWith(body => body.includes('var(--holo)')), ['.holder-name']);
+assert.deepEqual(selectorsWith(body => body.includes('var(--holo)')), ['.holder-name', '.ob-line-row.is-current .ob-line-name']);
 // Gold, by variable or by literal gold hex: the pot's glass layers and winner surfaces. Nothing else.
 const gold = /var\(--gold\)|#F5B301|#FFE082|#C98F00|245, ?179, ?1|138, ?98, ?0/i;
 // Gold is money or a winner surface: the pot, winner card, onboarding amounts and splits, and the coronation's rings and coins.
-assert.deepEqual(selectorsWith(body => gold.test(body)), ['.coro-coin-face', '.coro-rings > span', '.ob-gold', '.ob-payout-final', '.ob-pot-card.is-pot', '.ob-seg-pot', '.ob-split-win', '.pot-depth', '.pot-face', '.pot-glow']);
-// Radial gradients: the soft halo behind the pot and the onboarding spotlight, nothing else.
-assert.deepEqual(selectorsWith(body => body.includes('radial-gradient')), ['.ob-spotlight::before', '.pot-glow']);
+assert.deepEqual(selectorsWith(body => gold.test(body)), ['.coro-coin-face', '.coro-rings > span', '.ob-gold', '.ob-payout-final', '.ob-pot-card.is-pot', '.ob-split-win', '.pot-depth', '.pot-face', '.pot-glow']);
+// Radial gradients: the pot halo, the intro's throne glow, and its spotlight.
+assert.deepEqual(selectorsWith(body => body.includes('radial-gradient')), ['.ob-seat-glow', '.ob-spotlight::before', '.pot-glow']);
 // One sans family across the app, Space Grotesk only through --digits.
 assert.ok(!/Inter|Clash Display/.test(css), 'Inter and Clash Display are retired');
 const digitsUsers = selectorsWith(body => body.includes('var(--digits)'));
