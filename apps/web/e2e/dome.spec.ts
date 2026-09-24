@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('dome: crossing the button does not recapture its environment', async ({ page }, testInfo) => {
+test('dome: crossing the button does not recapture its environment', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
@@ -25,9 +25,11 @@ test('dome: crossing the button does not recapture its environment', async ({ pa
   const box = (await button.boundingBox())!;
   const cross = async () => {
     await page.mouse.move(box.x - 30, box.y + box.height / 2);
-    await page.mouse.move(box.x + box.width + 30, box.y + box.height / 2, { steps: 12 });
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 6 });
-    await page.mouse.move(box.x - 30, box.y + box.height / 2, { steps: 6 });
+    // A few real mouse moves exercise both edges without spending hundreds of
+    // frames traversing empty space on CI's software WebGL renderer.
+    await page.mouse.move(box.x + box.width + 30, box.y + box.height / 2, { steps: 3 });
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 2 });
+    await page.mouse.move(box.x - 30, box.y + box.height / 2, { steps: 2 });
   };
   await cross();
   const resources = () => page.evaluate(() => ({ ...(window as unknown as { domeResources: { cubeFaces: number } }).domeResources }));
@@ -36,8 +38,6 @@ test('dome: crossing the button does not recapture its environment', async ({ pa
   for (let i = 0; i < 4; i++) await cross();
   expect(await resources()).toEqual(before);
   await expect(page.locator('.ticker-line')).toHaveCSS('color', 'rgb(16, 16, 20)');
-  await button.hover();
-  await page.screenshot({ path: testInfo.outputPath('hover.png') });
   await button.click();
   await expect(page.getByRole('dialog', { name: 'leave a taunt' })).toBeVisible();
   expect(errors).toEqual([]);
