@@ -9,5 +9,12 @@ const nextConfig = {
     return config;
   }
 };
-// Keep production verification separate from the user's running dev server.
-export default phase => ({ ...nextConfig, distDir: process.env.USURP_E2E === '1' ? '.next-e2e' : phase === 'phase-development-server' ? '.next' : '.next-production' });
+// Vercel expects .next; isolate local production checks from the running dev server.
+export default phase => ({
+  ...nextConfig,
+  distDir: process.env.USURP_E2E === '1'
+    ? '.next-e2e'
+    : process.env.VERCEL === '1' || phase === 'phase-development-server'
+      ? '.next'
+      : '.next-production'
+});

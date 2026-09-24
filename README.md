@@ -134,7 +134,7 @@ pnpm --filter @usurp/web exec playwright install chromium
 pnpm test:browser
 ```
 
-The browser suite starts an isolated demo server on port 3100, checks the onboarding walkthrough and its persistence, manual and automatic takeovers, the eviction notice, winner preview, single-viewport fit from 360px phones to 1280×720, and both OG PNG dimensions. Screenshots are written to the ignored `artifacts/` directory. The test runner sets `USURP_E2E=1` to use `.next-e2e`. Production uses `.next-production`, separate from the running development server's `.next` output.
+The browser suite starts an isolated demo server on port 3100, checks the onboarding walkthrough and its persistence, manual and automatic takeovers, the eviction notice, winner preview, single-viewport fit from 360px phones to 1280×720, and both OG PNG dimensions. Screenshots are written to the ignored `artifacts/` directory. The test runner sets `USURP_E2E=1` to use `.next-e2e`. Local production builds use `.next-production`, separate from the running development server's `.next` output. Vercel builds use the standard `.next` directory when `VERCEL=1`, which Vercel sets automatically. In Vercel, use the Next.js framework preset with Root Directory `apps/web` and leave the Output Directory at its default.
 
 The GitHub Actions workflow runs contract tests, ABI drift checks, the local deployment integration, TypeScript, brand checks, production build, and browser tests.
 
