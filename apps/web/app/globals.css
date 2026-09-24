@@ -1,0 +1,420 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FONT SWAP POINT. ABC Monument Grotesk is the intended family; add its @font-face rules here
+   once the woff2 files exist under public/fonts. Schibsted Grotesk from Google Fonts stands in
+   at the same weights and is listed second in --sans so the swap needs no other change.
+   Space Grotesk is used only for the timer, the holding-fee readout and prices. */
+:root {
+  --paper: #ffffff; --card: #FFFFFF; --ink: #101014; --muted: #8A8A93; --line: #e8e8e3;
+  --holo: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 50%, #F472B6 100%);
+  --gold: #F5B301; --green: #00C875; --red: #FF3B5C;
+  --sans: 'ABC Monument Grotesk', 'Schibsted Grotesk', sans-serif;
+  --digits: 'Space Grotesk', monospace;
+  --display: var(--sans);
+  --nav-h: 64px; --ticker-h: 40px;
+  --crown: 88px;
+  --pot: clamp(84px, 14vh, 140px);
+  --timer: 52px;
+  /* the dome button: 525x450 at full size, capped by viewport height and width; it tucks up behind the timer */
+  --dome-h: min(450px, 56vh); --dome-w: min(calc(var(--dome-h) * 7 / 6), calc(100vw - 16px)); --dome-bleed: 1.3;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; letter-spacing: -0.3px; -webkit-font-smoothing: antialiased; }
+body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 90; opacity: .045; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='180' height='180' filter='url(%23g)'/></svg>"); }
+button, input, a { -webkit-tap-highlight-color: transparent; }
+button, input { font: inherit; letter-spacing: inherit; } /* controls reset letter-spacing by default */
+button, a { touch-action: manipulation; }
+button { cursor: pointer; border: 0; }
+button:disabled { cursor: not-allowed; opacity: .52; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 5px; }
+::selection { background: #dedee4; }
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }
+svg { flex-shrink: 0; }
+.numeric { font-family: var(--digits); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+.status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.skip-link { position: absolute; top: -100px; left: 10px; z-index: 100; background: white; padding: 12px; }
+.skip-link:focus { top: 10px; }
+
+/* app frame: header, main, fixed ticker */
+.app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding-bottom: var(--ticker-h); }
+#main-content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+.site-header { height: var(--nav-h); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 32px; flex-shrink: 0; }
+.wordmark { display: inline-flex; align-items: center; gap: 7px; font-family: var(--display); font-size: 26px; letter-spacing: -.04em; font-weight: 800; line-height: 1; }
+.wordmark-crown { width: 30px; height: 30px; object-fit: contain; transform: rotate(12deg) translateY(-1px); /* same 12° tilt as the crown everywhere else */ filter: drop-shadow(0 3px 3px rgba(16, 16, 20, .12)); }
+.header-actions { display: flex; gap: 14px; align-items: center; }
+.text-link { background: none; padding: 6px 2px; font-size: 15px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.text-link:hover { color: var(--ink); }
+.wallet-chip { display: flex; align-items: center; gap: 10px; height: 38px; border: 1px solid #d9d9d5; background: transparent; border-radius: 6px; font-size: 15px; font-weight: 500; padding: 0 14px; white-space: nowrap; color: var(--ink); }
+.wallet-chip:hover, .wallet-chip[aria-expanded='true'] { background: white; }
+.wallet-balance { display: inline-flex; align-items: center; gap: 5px; font-family: var(--digits); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); }
+.wallet-balance img { flex-shrink: 0; }
+.wallet-menu-wrap { position: relative; }
+.wallet-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 200px; background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 30px #10101414; padding: 6px; display: flex; flex-direction: column; }
+.wallet-menu button { background: none; text-align: left; font-size: 15px; padding: 10px 12px; border-radius: 5px; color: var(--ink); }
+.wallet-menu button:hover { background: var(--paper); }
+/* disconnect: red, on its own rounded red-tinted pill, set apart from the other items */
+.wallet-menu .menu-danger { margin-top: 4px; color: var(--red); background: rgba(255, 59, 92, .08); border-radius: 8px; font-weight: 500; }
+.wallet-menu .menu-danger:hover { background: rgba(255, 59, 92, .15); }
+/* the live page while onboarding is open: set back slightly, then scaled up over 500ms when it closes */
+.app { transition: transform .5s cubic-bezier(.22, 1, .36, 1), opacity .5s cubic-bezier(.22, 1, .36, 1); transform-origin: 50% 40%; }
+.app-behind { transform: scale(.97); opacity: .6; }
+
+/* the throne: one hero (the pot), one action (the button), a dense core centered between nav and ticker */
+.throne { overflow-x: clip; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 24px; max-width: 720px; width: 100%; margin: 0 auto; }
+.crown-stage { width: var(--crown); height: var(--crown); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.glass-crown { width: 100%; height: 100%; object-fit: contain; transform: rotate(12deg); animation: float-crown 5s ease-in-out infinite; filter: drop-shadow(0 10px 8px #10101412); }
+.crown-small { width: 50px; height: 42px; }
+.holder-line { position: relative; z-index: 92; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 100%; min-width: 0; font-size: 16px; line-height: 1.4; white-space: nowrap; }
+.holder-name { display: inline-block; background-image: var(--holo); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 16px; font-weight: 600; letter-spacing: 0; line-height: 1.4; flex-shrink: 0; max-width: 45vw; overflow: hidden; text-overflow: ellipsis; }
+.holder-sep { color: var(--muted); opacity: .6; flex-shrink: 0; }
+.taunt { color: var(--muted); font-size: 16px; font-style: italic; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the holding fee as a quiet ledger entry: what the holder has lost so far, ticking up a cent at a time. no blinking. */
+.bleed-tag { position: relative; flex-shrink: 0; font-family: var(--digits); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.01em; font-style: normal; color: var(--red); cursor: help; }
+.bleed-tag::after { content: attr(data-tip); position: absolute; right: -10px; bottom: calc(100% + 10px); padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--red); font-family: var(--digits); font-style: normal; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.bleed-tag:hover::after, .bleed-tag:focus-visible::after { opacity: 1; }
+.bleed-tag:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
+
+.pot-section { position: relative; z-index: 92; margin-top: 32px; display: flex; flex-direction: column; align-items: center; }
+.pot-number { position: relative; display: inline-block; font-family: var(--display); font-weight: 900; font-size: calc(var(--pot) * var(--pot-fit, 1)); line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; isolation: isolate; }
+.pot-glow { position: absolute; inset: -30% -8%; z-index: 0; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(245, 179, 1, .08) 0%, rgba(245, 179, 1, .05) 40%, rgba(245, 179, 1, 0) 70%); filter: blur(10px); pointer-events: none; }
+/* three stacked NumberFlow instances; the roll mask is kept tight so columns clip cleanly at the glyph edges */
+.pot-layer { display: block; line-height: 1; font-variant-numeric: tabular-nums; --number-flow-mask-height: .18em; --number-flow-mask-width: .2em; }
+/* separators keep proportional width so they do not sit in digit-wide cells; the dollar sign is set smaller and raised */
+.pot-layer::part(group), .pot-layer::part(decimal) { font-variant-numeric: normal; letter-spacing: -.04em; }
+/* NumberFlow pads each number by half its mask height top and bottom; negative margins give that room back to the
+   layout so the roll masks overlap neighbouring space instead of pushing the stack taller */
+.pot-layer { margin-block: calc(var(--number-flow-mask-height) / -2); }
+/* the timer's roll mask lives in extra line height above and below the digits, so the glyphs themselves are never faded */
+.countdown number-flow-react { line-height: 1.4; margin-block: -.25em; }
+.dome-price { --number-flow-mask-height: .16em; margin-block: calc(var(--number-flow-mask-height) / -2); }
+/* pin each number box to its type size; the raised dollar sign and the masks overflow visibly instead of adding height */
+.pot-number { height: 1.04em; }
+.countdown { height: 1em; }
+.dome-price { position: relative; z-index: 92; height: 1.15em; }
+.pot-layer::part(currency) { font-size: .68em; font-weight: 700; vertical-align: .2em; margin-right: .04em; }
+.pot-depth { position: absolute; inset: 0; z-index: 1; color: transparent; text-shadow: 0 2px 0 rgba(138, 98, 0, .34), 0 4px 0 rgba(138, 98, 0, .22), 0 7px 14px rgba(138, 98, 0, .16); }
+/* the gold gradient and the sheen are applied per glyph inside NumberFlow's shadow root (see pot-number.tsx) */
+.pot-face { position: relative; z-index: 2; color: var(--gold); }
+.pot-sheen { position: absolute; inset: 0; z-index: 3; clip-path: inset(0 0 60% 0); color: #fff; opacity: .35; pointer-events: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.timer-section { position: relative; z-index: 92; margin-top: 8px; }
+.countdown { display: flex; align-items: baseline; justify-content: center; --number-flow-mask-height: .1em; font-family: var(--digits); font-size: var(--timer); letter-spacing: -.02em; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1; color: #565658; transition: color .3s; } /* solid: ink at 70% pre-blended over the page, so the dome never shows through */
+.urgent .countdown { color: var(--red); }
+
+/* the canvas's empty headroom slides up under the timer, so the dome almost touches the text above it */
+.take-panel { width: 100%; margin-top: calc(var(--dome-h) * -0.12); display: flex; flex-direction: column; align-items: center; }
+.error-message { font-size: 14px; line-height: 1.5; border: 1px solid var(--line); background: white; border-radius: 6px; padding: 10px 12px; text-align: left; margin-top: 12px; overflow-wrap: anywhere; }
+
+/* dome button: a real <button>; the 3D canvas inside is only a picture of it. The slot reserves the canvas size. */
+.dome-button { display: flex; flex-direction: column; align-items: center; margin: 0 auto; padding: 0 12px 4px; background: none; color: var(--ink); border-radius: 18px; user-select: none; -webkit-user-select: none; }
+.dome-button:focus-visible { outline: none; }
+.dome-button[data-ring='true']:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.dome-button[aria-disabled='true'] { cursor: not-allowed; }
+.dome-button[aria-busy='true'] { cursor: progress; }
+.dome-slot { position: relative; z-index: 91; display: block; width: var(--dome-w); height: var(--dome-h); } /* above the page grain (z 90) so the render stays crisp */
+.dome-mini { --dome-w: 230px; --dome-h: 190px; }
+/* step 2 carries the name, the prompt, the practice dome and its label, so its visual gets extra room */
+.ob-step-2 .ob-visual { height: clamp(250px, calc(100vh - 300px), 400px); }
+.ob-step-2 .ob-visual-inner { gap: 8px; }
+.dome-mini .dome-label { font-size: 16px; }
+.dome-mini .dome-price { font-size: 18px; }
+.dome-slot.is-shaking { animation: dome-shake .36s linear; }
+/* the canvas is wider than the slot so the angled silhouette never clips; it is out of flow and ignores pointers */
+.dome-canvas { position: absolute; top: 0; bottom: 0; left: 50%; width: calc(var(--dome-w) * var(--dome-bleed)); max-width: calc(100vw - 16px); transform: translateX(-50%); display: block; pointer-events: none; transition: opacity .3s ease; }
+.dome-canvas canvas { display: block; }
+.dome-label { position: relative; z-index: 92; margin-top: calc(var(--dome-h) * -0.15); font-size: 18px; font-weight: 500; line-height: 1.2; }
+.dome-price { font-family: var(--digits); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+
+.sound-toggle { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #d9d9d5; border-radius: 6px; background: transparent; color: var(--muted); }
+.sound-toggle:hover, .sound-toggle[aria-pressed='true'] { color: var(--ink); background: white; }
+
+/* taunt modal: the only place the taunt input exists */
+.settle-link { margin-top: 2px; padding: 6px 0; font-size: 14px; }
+.take-modal { width: min(440px, calc(100% - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 20px; background: white; color: var(--ink); box-shadow: 0 30px 80px rgba(16, 16, 20, .12), 0 2px 6px rgba(16, 16, 20, .04); }
+.take-modal::backdrop { background: rgba(16, 16, 20, .22); backdrop-filter: blur(6px); }
+.take-modal form { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+/* the taunt field: soft fill at rest, white with a hairline and a faint ring when focused; never a hard outline */
+.taunt-field { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 16px; border-radius: 14px; background: #F3F3F0; border: 1px solid transparent; transition: background .15s, border-color .15s, box-shadow .15s; }
+.taunt-field:focus-within { background: white; border-color: #DCDCD7; box-shadow: 0 0 0 4px rgba(16, 16, 20, .04); }
+.taunt-field input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none; color: var(--ink); font-size: 18px; caret-color: #E26BAA; }
+.taunt-field input:focus-visible { outline: none; }
+.taunt-field input::placeholder { color: #A3A3AA; }
+.taunt-count { font-family: var(--digits); font-size: 13px; font-variant-numeric: tabular-nums; color: #A3A3AA; transition: color .15s; }
+.taunt-count.is-near { color: var(--ink); }
+.taunt-count.is-over { color: var(--red); font-weight: 600; }
+/* confirm: a light pink candy key (the crown's sampled pink) standing on a darker pink ledge that it presses into */
+.confirm-button { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 58px; border-radius: 16px; border: 1px solid #E88BBE; background: linear-gradient(180deg, #FFE6F2 0%, #FDC6E0 50%, #FBAED3 100%); color: var(--ink); font-size: 18px; font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -2px 0 rgba(232, 139, 190, .3), 0 4px 0 #E48AB9, 0 10px 18px rgba(228, 138, 185, .28); transition: transform .12s cubic-bezier(.22, 1, .36, 1), box-shadow .12s cubic-bezier(.22, 1, .36, 1); }
+.confirm-button:not(:disabled):hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -2px 0 rgba(232, 139, 190, .3), 0 5px 0 #E48AB9, 0 12px 22px rgba(228, 138, 185, .32); }
+.confirm-button:not(:disabled):active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), inset 0 -1px 0 rgba(232, 139, 190, .3), 0 1px 0 #E48AB9, 0 4px 10px rgba(228, 138, 185, .22); }
+.confirm-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.deadline-vignette { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 70px #FF3B5C24; animation: deadline-pulse 1s ease-in-out infinite; z-index: 20; }
+.eviction-toast { position: fixed; bottom: calc(var(--ticker-h) + 16px); right: 24px; display: flex; align-items: center; gap: 22px; background: white; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px #10101410; padding: 18px 22px; z-index: 95; max-width: calc(100vw - 32px); }
+.eviction-toast strong { font-family: var(--display); font-size: 20px; letter-spacing: -.02em; }
+.eviction-toast p { font-size: 14px; color: var(--green); margin-top: 4px; }
+.eviction-toast button { background: none; color: var(--muted); padding: 0; }
+
+/* ticker: fixed at the bottom edge on every page */
+.ticker { position: fixed; left: 0; right: 0; bottom: 0; height: var(--ticker-h); background: var(--paper); display: flex; align-items: center; gap: 14px; padding: 0 32px; font-size: 14px; z-index: 40; overflow: hidden; }
+.ticker-track { flex: 1; min-width: 0; position: relative; height: 100%; display: flex; align-items: center; overflow: hidden; }
+.ticker-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.ticker-line strong { color: var(--ink); font-weight: 500; }
+.ticker-line .numeric { color: var(--ink); font-size: 14px; }
+.ticker-sep { padding: 0 6px; opacity: .6; }
+.ticker-profit { color: var(--green); }
+.ticker-loss { color: var(--ink); }
+.ticker > a { display: flex; align-items: center; gap: 5px; color: var(--muted); white-space: nowrap; }
+.ticker > a:hover { color: var(--ink); }
+
+/* buttons */
+.ink-button { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: var(--ink); color: white; border-radius: 7px; padding: 15px 20px; font-size: 16px; font-weight: 500; width: 100%; margin-top: 18px; }
+.ink-button:hover { background: #303038; }
+.text-button { font-size: 15px; color: var(--muted); display: block; padding: 10px 0; background: none; margin-top: 6px; text-align: center; width: 100%; }
+.text-button:hover { color: var(--ink); }
+
+/* 404 */
+.inner-page { max-width: 1280px; width: 100%; margin: 0 auto; padding: 56px 32px 72px; }
+.page-intro h1 { font-size: 56px; line-height: 1.02; margin: 12px 0; }
+
+/* onboarding: full-screen practice round over the live page */
+.ob { position: fixed; inset: 0; z-index: 96; background: var(--paper); display: flex; flex-direction: column; padding: 16px 24px 20px; overflow: hidden; touch-action: pan-y; }
+.ob-top { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+.ob-chip { font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--line); border-radius: 100px; padding: 5px 12px; }
+.ob-link { background: none; font-size: 15px; font-weight: 500; color: var(--muted); padding: 8px 4px; display: inline-flex; align-items: center; }
+.ob-link:hover { color: var(--ink); }
+.ob-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; outline: none; }
+.ob-step { width: 100%; max-width: 560px; max-height: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.ob-visual { position: relative; width: 100%; height: clamp(200px, calc(100vh - 330px), 360px); display: flex; align-items: center; justify-content: center; }
+.ob-visual-play { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.ob-title { font-size: clamp(28px, 4.4vh, 40px); line-height: 1.05; margin-top: 18px; }
+.ob-copy { font-size: 17px; line-height: 1.45; color: var(--muted); margin-top: 8px; max-width: 480px; }
+.ob-copy-long { font-size: 16px; line-height: 1.5; text-align: left; }
+.ob-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; max-width: 560px; width: 100%; margin: 12px auto 0; }
+.ob-nav-right { justify-self: end; }
+.ob-dots { display: flex; gap: 6px; }
+.ob-dot { width: 6px; height: 6px; border-radius: 50%; background: #d4d4d0; transition: background .3s, transform .3s; }
+.ob-dot.is-on { background: var(--ink); transform: scale(1.3); }
+.ob-next { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: white; border-radius: 100px; padding: 12px 20px; font-size: 16px; font-weight: 500; white-space: nowrap; }
+.ob-next:not(:disabled):hover { background: #303038; }
+/* step 0 */
+.ob-connect { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 400px; }
+.ob-crown { display: block; object-fit: contain; filter: drop-shadow(0 10px 8px #10101412); }
+.ob-hero { font-size: clamp(30px, 5.2vh, 46px); line-height: 1; margin-top: 4px; }
+.ob-address { font-size: 15px; color: var(--muted); }
+.ob-wallets { display: flex; flex-direction: column; gap: 5px; width: 100%; margin-top: 4px; }
+.ob-wallet { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 12px 0 8px; border: 1px solid var(--line); border-radius: 12px; background: white; font-size: 16px; font-weight: 500; color: var(--ink); text-align: left; transition: transform .2s, box-shadow .2s, border-color .2s; }
+.ob-wallet:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px #1010140f; border-color: #dcdcd7; }
+.ob-wallet img, .ob-wallet-blank { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(16, 16, 20, .06); }
+.ob-wallet-blank { display: grid; place-items: center; background: var(--paper); color: var(--muted); }
+.ob-wallet-name { flex: 1; min-width: 0; }
+.ob-wallet-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--line); border-radius: 100px; padding: 2px 9px; }
+.ob-wallet.is-missing { color: var(--muted); }
+.ob-wallet.is-missing img { opacity: .75; filter: saturate(.8); }
+.ob-wallet-primary { justify-content: space-between; background: var(--ink); color: white; border-color: var(--ink); min-height: 54px; padding: 0 18px; margin-top: 6px; }
+.ob-demo-note { color: var(--ink); }
+/* approve: the spending cap card */
+.ob-token { display: flex; align-items: center; gap: 16px; width: 100%; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: white; box-shadow: 0 10px 24px rgba(16, 16, 20, .05); margin-bottom: 8px; }
+.ob-token-mark { width: 46px; height: 46px; flex-shrink: 0; filter: drop-shadow(0 4px 8px rgba(39, 117, 202, .25)); }
+.ob-amount { display: inline-flex; align-items: center; gap: 5px; }
+.ob-network { display: inline-flex; align-items: center; gap: 10px; }
+.ob-network img { border-radius: 6px; }
+.ob-token-rows { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.ob-token-rows > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.ob-token-rows > div > span:first-child { color: var(--muted); }
+.ob-approved { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 12px 18px; border-radius: 12px; background: rgba(0, 200, 117, .1); color: #00925A; font-weight: 600; font-size: 16px; }
+.ob-approve .ob-copy { font-size: 16px; }
+.ob-error { font-size: 14px; color: var(--red); }
+.ob-fine { font-size: 13px; color: var(--muted); margin-top: 8px; }
+/* shared visual pieces */
+.ob-visual-inner { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 100%; }
+/* a soft pool of light behind the scene that fades to nothing before its own edges, so it never reads as a panel */
+.ob-spotlight::before { content: ''; position: absolute; inset: -8% 0 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 50% 55% at 50% 40%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 60%), radial-gradient(ellipse 50% 50% at 50% 45%, rgba(16, 16, 20, .05) 0%, rgba(16, 16, 20, .035) 55%, rgba(16, 16, 20, 0) 100%); }
+.ob-name-slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px; }
+.ob-name { font-size: 34px; font-weight: 700; line-height: 1.1; }
+.ob-name-sm { font-size: 18px; font-weight: 600; line-height: 1.3; }
+.ob-taunt { font-size: 16px; font-style: italic; color: var(--muted); }
+.ob-shard-anchor { position: relative; }
+.ob-shards { position: absolute; left: 50%; top: 40%; pointer-events: none; }
+.ob-shard { position: absolute; width: 10px; height: 12px; margin: -6px 0 0 -5px; clip-path: polygon(50% 0, 100% 100%, 0 70%); background: linear-gradient(160deg, rgba(255, 255, 255, .95), rgba(200, 200, 215, .7)); box-shadow: 0 0 0 1px rgba(16, 16, 20, .08); }
+.ob-mini-dome { margin-top: 2px; }
+/* the practice-press prompt: a solid pill pointing down at the dome, bobbing gently so it cannot be missed */
+.ob-hint { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 -4px; padding: 8px 16px 8px 12px; border-radius: 100px; background: var(--ink); color: white; font-size: 15px; font-weight: 600; box-shadow: 0 8px 20px rgba(16, 16, 20, .22), 0 0 0 4px rgba(16, 16, 20, .06); animation: ob-nudge 1.4s ease-in-out infinite; }
+@keyframes ob-nudge { 0%, 100% { translate: 0 0; } 50% { translate: 0 5px; } }
+.ob-num { font-family: var(--digits); font-variant-numeric: tabular-nums; font-weight: 500; }
+.ob-green { color: var(--green); }
+.ob-gold { color: var(--gold); }
+.ob-muted { color: var(--muted); }
+/* 4: refund card */
+.ob-card { width: min(340px, 100%); border: 1px solid var(--line); border-radius: 14px; background: white; padding: 4px 0; margin-top: 6px; overflow: hidden; box-shadow: 0 10px 24px rgba(16, 16, 20, .05); }
+.ob-card-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 11px 18px; font-size: 16px; box-shadow: inset 0 -1px 0 var(--line); }
+.ob-card-row:last-child { box-shadow: none; }
+.ob-card-row > span:first-child { color: var(--muted); }
+.ob-profit .ob-num { color: var(--green); }
+/* 5: the clock */
+.ob-clock .countdown { font-size: clamp(56px, 11vh, 96px); color: var(--ink); }
+.ob-resets { display: flex; gap: 8px; min-height: 28px; }
+.ob-reset { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 100px; padding: 3px 10px 3px 4px; }
+.ob-avatar { width: 16px; height: 16px; border-radius: 50%; background: var(--ink); }
+/* 1: one throne. a beam, a crown landing on a glass nameplate, spectators drifting at different depths */
+.ob-throne { --spread: 1; gap: 0; }
+.ob-beam { position: absolute; left: 50%; top: -10%; width: 380px; height: 88%; translate: -50% 0; transform-origin: top center; pointer-events: none; background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, .75) 45%, rgba(255, 255, 255, 0) 92%); clip-path: polygon(41% 0, 59% 0, 100% 100%, 0 100%); filter: blur(6px); }
+.ob-watcher { position: absolute; left: calc(50% + var(--x) * var(--spread) * 1px); top: calc(46% + var(--y) * var(--spread) * 1px); translate: -50% -50%; display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 5px; border-radius: 100px; background: rgba(255, 255, 255, .85); border: 1px solid var(--line); font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; filter: blur(var(--blur)); animation: ob-drift var(--drift) ease-in-out infinite alternate; pointer-events: none; }
+.ob-watcher-dot { width: 15px; height: 15px; border-radius: 50%; background: linear-gradient(160deg, #E6E6E2, #CFCFCA); }
+.ob-floor { position: absolute; left: 50%; bottom: 12%; width: 320px; height: 36px; translate: -50% 0; border-radius: 50%; background: rgba(16, 16, 20, .1); filter: blur(16px); pointer-events: none; }
+.ob-crown-wrap { position: relative; z-index: 2; width: clamp(110px, 19vh, 168px); aspect-ratio: 1; margin-bottom: -30px; }
+.ob-crown-hero { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; animation: float-crown 5s ease-in-out infinite; filter: drop-shadow(0 18px 14px rgba(16, 16, 20, .14)); }
+/* the aura is the crown itself, blurred and saturated, so its glow is exactly the crown's colours */
+.ob-crown-aura { position: absolute; inset: -12%; width: 124%; height: 124%; object-fit: contain; filter: blur(30px) saturate(1.7); opacity: .55; animation: ob-aura 3.6s ease-in-out infinite alternate; }
+.ob-plate { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 100%; padding: 38px 30px 18px; border-radius: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .78)); border: 1px solid rgba(16, 16, 20, .08); box-shadow: inset 0 1px 0 #fff, 0 22px 44px rgba(16, 16, 20, .09), 0 2px 6px rgba(16, 16, 20, .04); backdrop-filter: blur(8px); }
+.ob-plate-label { font-size: 13px; font-weight: 500; color: var(--muted); }
+.ob-plate .ob-name { font-size: clamp(36px, 6vh, 52px); letter-spacing: -.03em; line-height: 1.05; max-width: none; overflow: visible; }
+.ob-shimmer { background-size: 240% 100%; animation: ob-shimmer 4.5s ease-in-out infinite alternate; }
+.ob-plate .ob-taunt { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes ob-drift { from { translate: -50% -50%; } to { translate: -50% calc(-50% - 9px); } }
+@keyframes ob-aura { from { opacity: .38; transform: scale(.94); } to { opacity: .72; transform: scale(1.08); } }
+@keyframes ob-shimmer { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+/* 3: the price climbs. five exact columns so the trend points and the x1.35 chips land on bar centres and seams */
+.ob-climb { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; width: min(460px, 100%); height: 88%; margin: 0 auto; }
+.ob-climb-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; padding: 0 clamp(5px, 1.4vw, 12px); }
+.ob-climb-price { font-family: var(--digits); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; }
+.ob-climb-bar { display: block; width: 100%; border-radius: 12px 12px 4px 4px; transform-origin: bottom; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 8px 18px rgba(16, 16, 20, .08); }
+.ob-climb-trend { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.ob-climb-mult { position: absolute; z-index: 2; translate: -50% 50%; padding: 6px 11px; border-radius: 100px; background: var(--ink); color: white; font-family: var(--digits); font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; box-shadow: 0 0 0 3px var(--paper), 0 8px 18px rgba(16, 16, 20, .22); }
+/* 6: the pot. payment card | ribbons | three result cards, as one centred grid */
+.ob-pot { display: grid; grid-template-columns: auto minmax(56px, 1fr) auto; align-items: center; width: min(540px, 100%); height: min(100%, 270px); margin: 0 auto; }
+.ob-pot-source { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 16px; border-radius: 16px; background: var(--ink); color: white; box-shadow: 0 14px 30px rgba(16, 16, 20, .2); font-size: 20px; }
+.ob-pot-source small { font-size: 13px; color: rgba(255, 255, 255, .62); }
+.ob-pot-ribbons { width: 100%; height: 100%; overflow: visible; }
+.ob-flowlight { stroke-dasharray: 7 93; opacity: .95; animation: ob-flow 1.9s linear infinite; }
+@keyframes ob-flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+.ob-pot-targets { display: grid; grid-template-rows: repeat(3, 1fr); align-items: center; height: 100%; gap: 6px; }
+.ob-pot-card { display: flex; flex-direction: column; align-items: flex-start; min-width: 138px; padding: 9px 14px; border-radius: 14px; border: 1px solid var(--line); background: white; box-shadow: 0 6px 16px rgba(16, 16, 20, .05); font-size: 20px; line-height: 1.2; }
+.ob-pot-card small { font-size: 13px; color: var(--muted); }
+.ob-pot-card small b { font-weight: 600; }
+.ob-pot-card.is-pot { border-color: rgba(245, 179, 1, .55); box-shadow: 0 0 0 4px rgba(245, 179, 1, .12), 0 12px 26px rgba(245, 179, 1, .2); }
+.ob-pot-total { font-size: 24px; font-weight: 600; }
+/* coronation: the win. flash, shockwave rings, rising molten gold, crown drop, slot-reel payout, tumbling coins */
+.coro { position: fixed; inset: 0; z-index: 94; /* above the page text (92) and the dome (91), below toasts and onboarding */ overflow: hidden; pointer-events: none; --coro-crown: clamp(150px, 26vh, 260px); --coro-name: clamp(46px, 9vw, 128px); --coro-pay: clamp(34px, 5.5vw, 76px); --coro-ring: 46vmin; }
+.coro.is-stage { position: absolute; z-index: 3; border-radius: 22px; --coro-crown: clamp(84px, 14vh, 120px); --coro-name: clamp(34px, 5.5vh, 46px); --coro-pay: clamp(28px, 4.4vh, 38px); --coro-ring: 60%; }
+.coro-flash { position: absolute; inset: 0; z-index: 4; background: #fff; }
+.coro-rings > span { position: absolute; left: 50%; top: 50%; width: var(--coro-ring); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: 2px solid var(--gold); box-shadow: 0 0 24px rgba(245, 179, 1, .35); }
+.coro-liquid { position: absolute; inset: -2% 0 0; z-index: 1; }
+.coro-liquid svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.coro-wave { transform-box: fill-box; animation: coro-wave 3.2s linear infinite; }
+.coro-wave-back { animation-duration: 5.4s; animation-direction: reverse; opacity: .85; }
+@keyframes coro-wave { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.coro-coins { position: absolute; inset: 0; z-index: 2; }
+.coro-coin { position: absolute; top: 0; display: block; perspective: 120px; }
+/* a minted coin: raised rim, recessed field, light across the face; it tumbles in 3D so it thins to its edge */
+.coro-coin-face { position: relative; display: block; width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(135deg, #FFF3C4 0%, #FFD24A 32%, #F5B301 58%, #B07C00 100%); box-shadow: inset 0 0 0 1.5px rgba(255, 246, 214, .85), inset 0 -2px 3px rgba(110, 72, 0, .45), 0 2px 5px rgba(110, 72, 0, .3); backface-visibility: visible; }
+.coro-coin-face::after { content: ''; position: absolute; inset: 22%; border-radius: 50%; border: 1px solid rgba(110, 72, 0, .35); box-shadow: inset 0 1px 1px rgba(255, 246, 214, .7); background: linear-gradient(135deg, rgba(255, 243, 196, .5), rgba(176, 124, 0, .15)); }
+.coro-content { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px; color: var(--ink); }
+.coro-crown-slot { position: relative; width: var(--coro-crown); aspect-ratio: 1; margin-bottom: 4px; }
+.coro-crown { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 18px 18px rgba(120, 80, 0, .35)); }
+.coro-burst { position: absolute; left: 50%; top: 62%; width: 0; height: 0; z-index: 3; }
+.coro-burst .coro-coin { position: absolute; margin: -50% 0 0 -50%; display: block; }
+.coro-flare { position: absolute; left: 50%; top: 58%; width: 150%; height: 150%; margin: -75% 0 0 -75%; background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, .95) 4deg, transparent 12deg, transparent 84deg, rgba(255, 255, 255, .95) 94deg, transparent 102deg, transparent 174deg, rgba(255, 255, 255, .95) 184deg, transparent 192deg, transparent 264deg, rgba(255, 255, 255, .95) 274deg, transparent 282deg); mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent), linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent); mask-composite: intersect; -webkit-mask-composite: source-in; }
+.coro-kicker { font-size: clamp(13px, 1.4vw, 18px); font-weight: 600; color: rgba(16, 16, 20, .72); margin-top: 10px; }
+.coro-name { display: block; font-family: var(--display); font-weight: 900; font-size: var(--coro-name); line-height: .95; letter-spacing: -.04em; overflow-wrap: anywhere; text-shadow: 0 2px 0 rgba(255, 246, 214, .6); }
+.coro-payout { margin-top: 10px; min-height: 1.2em; font-size: var(--coro-pay); }
+.coro-payout .flood-payout { display: inline-block; height: 1.1em; overflow: hidden; /* one line: neighbouring reel digits never spill */ font-family: var(--digits); font-weight: 600; font-size: var(--coro-pay); line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--ink); text-shadow: 0 2px 0 rgba(255, 246, 214, .55); }
+/* 5: the clock as a watch face */
+.ob-watch { gap: 14px; }
+.ob-watch-face { position: relative; width: min(250px, 72vw, 100%); aspect-ratio: 1; display: grid; place-items: center; max-height: 78%; }
+.ob-watch-face svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ob-watch-ripple { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--ink); pointer-events: none; }
+.ob-watch .ob-clock .countdown { font-size: clamp(40px, 7vh, 60px); }
+.ob-watch-feed { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 62px; }
+.ob-watch-event { display: inline-flex; align-items: center; gap: 7px; padding: 4px 6px 4px 12px; border-radius: 100px; background: white; border: 1px solid var(--line); box-shadow: 0 6px 14px rgba(16, 16, 20, .05); font-size: 14px; color: var(--muted); }
+.ob-watch-tag { font-size: 13px; font-weight: 600; color: white; background: var(--ink); border-radius: 100px; padding: 2px 8px; }
+/* 7 */
+.ob-clock.is-final .countdown { color: var(--red); font-size: clamp(64px, 12vh, 104px); }
+.ob-payout-final { font-family: var(--digits); font-variant-numeric: tabular-nums; font-weight: 600; font-size: clamp(34px, 5.5vh, 48px); color: var(--gold); line-height: 1.1; }
+/* 7: win */
+.ob-win { gap: 8px; }
+.ob-long-live { font-family: var(--display); font-weight: 800; font-size: clamp(30px, 5vh, 44px); letter-spacing: -.02em; }
+.ob-split { display: flex; flex-direction: column; gap: 6px; width: min(360px, 100%); margin-top: 6px; }
+.ob-split-caption { font-size: 13px; color: var(--muted); text-align: left; }
+.ob-split-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #e4e4e0; }
+.ob-split-win { background: var(--gold); }
+.ob-split-next { flex: 1; background: #d4d4d0; }
+.ob-split-labels { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+/* 8: honest */
+.ob-honest { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; width: 100%; height: 100%; }
+.ob-seg-refund { background: rgba(0, 200, 117, .55); }
+.ob-seg-pot { background: var(--gold); }
+.ob-seg-house { flex: 1; background: #b9b9bf; }
+.ob-bleed-row { display: flex; align-items: center; gap: 12px; }
+.ob-bleed { display: inline-flex; align-items: baseline; gap: 10px; font-family: var(--digits); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--red); }
+.ob-bleed .bleed-tag::after { content: none; }
+.ob-bleed-rate { font-family: var(--sans); color: var(--muted); font-size: 14px; }
+
+@media (max-width: 720px) {
+  .ob { padding: 12px 16px 16px; }
+  .ob-visual { height: clamp(190px, calc(100vh - 360px), 330px); }
+  .ob-copy { font-size: 16px; }
+  .ob-title { margin-top: 12px; }
+  .ob-name { font-size: 28px; }
+  .ob-throne { --spread: .52; }
+  .dome-mini { --dome-w: 190px; --dome-h: 150px; }
+  .ob-step-2 .ob-visual { height: clamp(250px, calc(100vh - 330px), 400px); }
+  .ob-crown-wrap { width: clamp(96px, 15vh, 140px); }
+  .ob-plate { padding: 32px 22px 16px; }
+  .ob-beam { width: 280px; }
+  .ob-pot-card { min-width: 112px; padding: 7px 10px; font-size: 17px; }
+  .ob-pot-total { font-size: 19px; }
+  .ob-pot-source { padding: 10px 11px; font-size: 17px; }
+  .ob-climb-price { font-size: 13px; }
+  .ob-climb-mult { font-size: 13px; padding: 5px 8px; }
+  .ob-honest { gap: 10px; }
+  .ob-step-8 .ob-visual { height: 170px; }
+}
+
+@keyframes float-crown { 0%, 100% { transform: translateY(0) rotate(12deg); } 50% { transform: translateY(-7px) rotate(9deg); } }
+@keyframes dome-shake { 0%, 100% { transform: translateX(0); } 8.33%, 41.67%, 75% { transform: translateX(-4px); } 25%, 58.33%, 91.67% { transform: translateX(4px); } }
+@keyframes deadline-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+
+@media (max-width: 1050px) {
+  .site-header { padding: 0 24px; gap: 18px; }
+  .ticker { padding: 0 24px; }
+}
+
+@media (max-width: 720px) {
+  :root { --nav-h: 56px; --pot: min(64px, 14vw); --timer: 47px; --dome-h: min(338px, 41vh); }
+  .site-header { padding: 0 16px; gap: 8px; }
+  .header-actions { gap: 8px; }
+  .text-link { font-size: 14px; }
+  .wallet-chip { padding: 0 10px; font-size: 14px; height: 36px; }
+  .wallet-balance { display: none; }
+  .sound-toggle { width: 36px; height: 36px; }
+  .wordmark { font-size: 24px; }
+  .throne { padding: 8px 16px; }
+  .holder-name { max-width: 50vw; }
+  .ticker { padding: 0 16px; gap: 10px; font-size: 13px; }
+  .ticker-line .numeric { font-size: 13px; }
+  .eviction-toast { right: 16px; padding: 16px 18px; gap: 16px; }
+  .eviction-toast strong { font-size: 18px; }
+}
+
+/* short desktop viewports (1280x720): tighten the stack so the taller dome button still fits */
+@media (max-height: 760px) and (min-width: 721px) {
+  :root { --crown: 60px; --pot: 12.5vh; }
+  .holder-line { margin-top: 10px; }
+  .pot-section { margin-top: 14px; }
+  .throne { padding-top: 4px; padding-bottom: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .deadline-vignette { opacity: .4; }
+}

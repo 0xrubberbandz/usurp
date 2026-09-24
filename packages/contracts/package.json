@@ -1,0 +1,9 @@
+{
+  "name": "@usurp/contracts",
+  "private": true,
+  "scripts": {
+    "install:libs": "forge install OpenZeppelin/openzeppelin-contracts@v5.2.0 --no-git && forge install foundry-rs/forge-std@v1.9.7 --no-git",
+    "build": "forge build",
+    "test": "forge test -vvv"
+  }
+}

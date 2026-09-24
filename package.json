@@ -1,0 +1,22 @@
+{
+  "name": "usurp",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:demo": "cross-env NEXT_PUBLIC_DEMO=1 node scripts/dev.mjs",
+    "build": "npm --prefix apps/web run build",
+    "start": "npm --prefix apps/web start",
+    "typecheck": "npm --prefix apps/web run typecheck",
+    "test": "npm run test:contracts && npm run test:web",
+    "test:contracts": "npm --prefix packages/contracts test",
+    "test:web": "npm --prefix apps/web test",
+    "test:browser": "npm --prefix apps/web run test:browser",
+    "test:integration": "node apps/web/scripts/verify-chain.mjs",
+    "contracts:install": "npm --prefix packages/contracts run install:libs",
+    "contracts:abi": "node scripts/sync-abi.mjs",
+    "deploy:testnet": "node --env-file=.env scripts/deploy.mjs",
+    "check:brand": "node scripts/audit-brand.mjs"
+  },
+  "devDependencies": { "cross-env": "7.0.3" }
+}

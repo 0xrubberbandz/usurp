@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.next-production/
+.next-e2e/
+.env
+.env.*
+!.env.example
+out/
+cache/
+broadcast/
+packages/contracts/lib/
+.tools/
+*.tsbuildinfo
+playwright-report/
+test-results/
+artifacts/
+apps/web/public/deployments/local.json
