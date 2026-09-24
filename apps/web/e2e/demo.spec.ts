@@ -58,8 +58,22 @@ test('onboarding: walkthrough first, then connect a wallet and approve usdc; per
   await expect(overlay).not.toContainText('practice round');
   await expect(overlay.getByRole('button', { name: 'sound effects' })).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
+  const background = overlay.locator('.ob-background video');
+  const originalVideo = await background.elementHandle();
+  await expect.poll(() => background.evaluate(node => (node as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
+  // Seek near the end to verify actual looping, then confirm navigation keeps the same playing video.
+  await background.evaluate(node => { const video = node as HTMLVideoElement; video.currentTime = video.duration - 0.25; });
+  await expect.poll(() => background.evaluate(node => (node as HTMLVideoElement).currentTime)).toBeLessThan(1.5);
+  await background.evaluate(node => { (node as HTMLVideoElement).currentTime = 3; });
+  mkdirSync('../../artifacts', { recursive: true });
+  await page.screenshot({ path: '../../artifacts/intro-background-desktop.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(background).toHaveCSS('object-fit', 'cover');
+  await page.screenshot({ path: '../../artifacts/intro-background-mobile.png' });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await overlay.getByRole('button', { name: 'show me' }).click();
   await expect(overlay.locator('.ob-step-2')).toBeVisible();
+  expect(await originalVideo!.evaluate(node => node.isConnected)).toBe(true);
   await overlay.getByRole('button', { name: 'next' }).click();
   // Trying the example dome is optional; users can continue without a practice round.
   await expect(overlay.getByRole('button', { name: 'next' })).toBeEnabled();
@@ -78,6 +92,7 @@ test('onboarding: walkthrough first, then connect a wallet and approve usdc; per
   for (const name of ['Rabby', 'Phantom', 'MetaMask']) await expect(overlay.getByRole('button', { name })).toBeVisible();
   await overlay.getByRole('button', { name: 'Rabby' }).click();
   await expect(overlay.locator('.ob-step-10')).toBeVisible();
+  expect(await originalVideo!.evaluate(node => node.isConnected && !(node as HTMLVideoElement).paused)).toBe(true);
   await expect(overlay.getByRole('button', { name: 'take your seat' })).toBeDisabled();
   await overlay.getByRole('button', { name: /^approve \$/ }).click();
   await expect(overlay.getByText(/approved for \$/)).toBeVisible();

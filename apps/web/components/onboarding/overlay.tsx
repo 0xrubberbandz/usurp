@@ -8,6 +8,7 @@ import { walletRows } from '@/lib/wallets';
 import { playSound, stopSounds } from '@/lib/sound';
 import { SoundToggle } from '../sound-toggle';
 import { SlideAudio } from './slide-audio';
+import { IntroBackground } from './background';
 import { useOnboarding, useOnboardingGame } from './context';
 import { MiniCrown, StepClock, StepPot, StepPrice, StepRefund, StepThrone, StepTake, StepWelcome, StepWin } from './steps';
 
@@ -146,6 +147,7 @@ export function OnboardingOverlay() {
   return <AnimatePresence>{open && <motion.div className="ob" role="dialog" aria-modal="true" aria-label="how usurp works" initial={auto ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.5, ease: EASE }}
     onPointerDown={e => { if (e.pointerType !== 'mouse') touch.current = e.clientX; }}
     onPointerUp={e => { if (touch.current === null) return; const dx = e.clientX - touch.current; touch.current = null; if (Math.abs(dx) > 50) { if (dx < 0) next(); else back(); } }}>
+    <IntroBackground reduced={reduced}/>
     <div className="ob-top">
       <SoundToggle label/>
       {mode === 'connect' ? <button className="ob-link" onClick={() => { stopSounds(); finish(false); }} aria-label="close"><X size={18}/></button>
