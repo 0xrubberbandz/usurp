@@ -245,6 +245,16 @@ const SceneEffects = memo(function SceneEffects() {
   </EffectComposer>;
 });
 
+// Soft light bouncing up from the video's blue, pink and lilac streaks. In the
+// assembly's coordinates, -X/+Z is the corner nearest the viewer.
+const Underlighting = memo(function Underlighting() {
+  return <>
+    <pointLight color={CROWN.sky} position={[-1.45, -0.22, 1.45]} intensity={1.6} distance={2.8} decay={2}/>
+    <pointLight color={CROWN.pink} position={[1.55, -0.15, 1.25]} intensity={1.2} distance={3} decay={2}/>
+    <pointLight color={CROWN.lilac} position={[-1.55, -0.1, -0.65]} intensity={0.9} distance={2.6} decay={2}/>
+  </>;
+});
+
 function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: DomeSceneProps) {
   const invalidate = useThree(s => s.invalidate);
   const canvas = useThree(s => s.gl.domElement);
@@ -341,6 +351,7 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
     <a.directionalLight position={[-3, 5, 3]} intensity={key.to(v => 2.1 * v)}/>
     <ambientLight intensity={0.25}/>
     <group ref={assembly} rotation-y={YAW}>
+      <Underlighting/>
       {/* Soft neutral contact shadow, pre-baked and parented to the swaying assembly so it always sits in register
           under the housing. A live ContactShadows pass left a hard ghost edge around the base. */}
       <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1}><planeGeometry args={[SHADOW_SIZE, SHADOW_SIZE]}/><meshBasicMaterial map={shadowTexture()} transparent depthWrite={false} toneMapped={false}/></mesh>
