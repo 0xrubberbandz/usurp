@@ -58,7 +58,50 @@ function Shards({ burst }: { burst: number }) {
   </span>;
 }
 
-// 1. one throne. A light falls on the crown as it lands on a glass nameplate; faint spectators drift around it,
+// 1. welcome: the line of succession. Two names are on the list; six more take the throne faster and faster, each
+// struck off as the next arrives. The list slides up under a fixed highlight card and the crown drops onto each new
+// holder. The last arrival is you, and your reign starts counting. lib/sound.ts scores the same arrival times.
+// (Plain y offsets rather than layout animations: layout projection inside the slide kept AnimatePresence from
+// finishing the exit, so the next slide never mounted.)
+const LINE = [
+  { name: 'inkfeather', reign: '41m 08s' }, { name: 'exit_liquidity', reign: '12m 30s' }, { name: 'tiny_emperor', reign: '3m 12s' },
+  { name: 'no_refunds', reign: '1m 05s' }, { name: 'monad_monk', reign: '47s' }, { name: 'paper_crown', reign: '19s' },
+  { name: 'your_ex', reign: '6s' }, { name: 'gm_goblin', reign: '2s' }, { name: 'you', reign: '' }
+];
+const ARRIVALS = [600, 1150, 1600, 1950, 2250, 2500, 2950];
+const ROW = 44, YOU_ROW = 64, GAP = 4; // must match .ob-line-row heights and the .ob-line-list gap
+function Reign({ reduced }: VisualProps) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (reduced) return;
+    const id = setInterval(() => setSeconds(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [reduced]);
+  return <>reigning {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</>;
+}
+export function StepWelcome({ reduced }: VisualProps) {
+  const current = 1 + usePhase(ARRIVALS, reduced);
+  const you = current === LINE.length - 1;
+  // push the list down by the rows that have not arrived yet, so the current holder always sits on the card
+  const below = LINE.slice(current + 1).reduce((h, row) => h + (row.name === 'you' ? YOU_ROW : ROW) + GAP, 0);
+  // the card sits outside the masked list so its shadow is not clipped
+  return <div className="ob-line-wrap" aria-hidden="true">
+    <motion.span className="ob-line-card" initial={false} animate={{ height: you ? YOU_ROW : ROW }} transition={{ duration: reduced ? 0 : 0.3, ease }}>
+      <motion.img key={current} className="ob-line-crown" src="/brand/crown.svg" alt=""
+        initial={reduced ? false : { y: -30, rotate: -12, opacity: 0 }} animate={{ y: 0, rotate: 12, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 17 }}/>
+    </motion.span>
+    <div className="ob-line"><motion.div className="ob-line-list" initial={false} animate={{ y: below }} transition={{ duration: reduced ? 0 : 0.32, ease }}>
+      {LINE.map((row, i) => <motion.div key={row.name} className={`ob-line-row${i === current ? ' is-current' : ''}${row.name === 'you' ? ' is-you' : ''}`}
+        initial={false} animate={{ opacity: i <= current ? 1 : 0 }} transition={{ duration: reduced ? 0 : 0.25 }}>
+        <span/>
+        <span className="ob-line-name">{row.name}{i < current && <motion.span className="ob-line-strike" initial={reduced ? false : { scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.22, ease }}/>}</span>
+        <span className="ob-line-reign">{i < current ? row.reign : i > current ? '' : row.name === 'you' ? <Reign reduced={reduced}/> : 'reigning'}</span>
+      </motion.div>)}
+    </motion.div></div>
+  </div>;
+}
+
+// 2. one throne. A light falls on the glass throne as it settles onto a nameplate; faint spectators drift around it,
 // because everyone can see who is sitting on it.
 const WATCHERS = [
   { name: 'exit_liquidity', x: -230, y: -96, depth: 0.9, drift: 6.5 }, { name: 'tiny_emperor', x: 214, y: -118, depth: 0.55, drift: 7.5 },
@@ -75,9 +118,9 @@ export function StepThrone({ reduced }: VisualProps) {
       <span className="ob-watcher-dot"/>{w.name}
     </motion.span>)}
     <span className="ob-floor" aria-hidden="true"/>
-    <motion.div className="ob-crown-wrap" initial={reduced ? false : { opacity: 0, y: -90, rotate: -8 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ type: 'spring', stiffness: 160, damping: 13, delay: 0.25 }}>
-      <img className="ob-crown-aura" src="/brand/crown.svg" alt="" aria-hidden="true"/>
-      <img className="ob-crown-hero" src="/brand/crown.svg" alt=""/>
+    <motion.div className="ob-seat" initial={reduced ? false : { opacity: 0, y: -40, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 150, damping: 15, delay: 0.25 }}>
+      <span className="ob-seat-glow" aria-hidden="true"/>
+      <img src="/brand/throne.png" alt=""/>
     </motion.div>
     <motion.div className="ob-plate" initial={reduced ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={t(0.55)}>
       <span className="ob-plate-label">on the throne</span>
@@ -87,7 +130,7 @@ export function StepThrone({ reduced }: VisualProps) {
   </div>;
 }
 
-// 2. anyone can take it. Trying the mini dome is optional; nothing is sent anywhere.
+// 3. anyone can take it. Trying the mini dome is optional; nothing is sent anywhere.
 export function StepTake({ reduced, taken, onTake }: VisualProps & { taken: boolean; onTake: () => void }) {
   return <motion.div className="ob-visual-inner" variants={stagger} initial={reduced ? 'show' : 'hidden'} animate="show">
     <motion.div variants={rise}><MiniCrown jolt={taken ? 1 : 0} size={64} reduced={reduced}/></motion.div>
@@ -101,7 +144,7 @@ export function StepTake({ reduced, taken, onTake }: VisualProps & { taken: bool
   </motion.div>;
 }
 
-// 3. the price climbs. Bars grow one by one with their prices on top; a bold ×1.35 chip pops at every step
+// 4. the price climbs. Bars grow one by one with their prices on top; a bold ×1.35 chip pops at every step
 // and a dashed trend line traces the climb.
 const PRICES = [10, 13.5, 18.23, 24.6, 33.21];
 const SHADES = ['#DCDCD8', '#BDBDC2', '#8E8E97', '#4B4B53', '#101014'];
@@ -125,7 +168,7 @@ export function StepPrice({ reduced }: VisualProps) {
   </div>;
 }
 
-// 4. get booted, get paid.
+// 5. get booted, get paid.
 export function StepRefund({ reduced }: VisualProps) {
   const phase = usePhase([900, 1500, 2100, 3000], reduced);
   return <div className="ob-visual-inner">
@@ -140,7 +183,7 @@ export function StepRefund({ reduced }: VisualProps) {
   </div>;
 }
 
-// 5. the clock. A watch face: 60 ticks and a ring that drains as the accelerated clock runs down. When someone takes the
+// 6. the clock. A watch face: 60 ticks and a ring that drains as the accelerated clock runs down. When someone takes the
 // throne their name slides in, the ring springs back to full with a ripple, and the digits roll up to 05:00.
 const TAKERS = [{ at: 15, name: 'tiny_emperor' }, { at: 33, name: 'monad_monk' }];
 export function StepClock({ reduced }: VisualProps) {
@@ -179,7 +222,7 @@ export function StepClock({ reduced }: VisualProps) {
   </div>;
 }
 
-// 6. the pot. One $13.50 payment flows out as three ribbons (moving light along each) into three cards; the pot card
+// 7. the pot. One $13.50 payment flows out as three ribbons (moving light along each) into three cards; the pot card
 // rolls upward. A three-column grid keeps the whole composition centred.
 const STREAMS = [
   { label: 'previous holder', amount: 10.2, color: '#00C875', width: 16, cls: 'ob-green' },
@@ -215,7 +258,7 @@ export function StepPot({ reduced }: VisualProps) {
   </div>;
 }
 
-// 7. outlast everyone. The last seconds tick red, then the full coronation plays inside the stage, drains away, and the
+// 8. outlast everyone. The last seconds tick red, then the full coronation plays inside the stage, drains away, and the
 // result settles with the 82/18 split.
 export function StepWin({ reduced }: VisualProps) {
   const [seconds, setSeconds] = useState(reduced ? 0 : 5);
@@ -237,30 +280,4 @@ export function StepWin({ reduced }: VisualProps) {
       <span className="ob-split-labels"><span className="ob-gold">82% to the winner</span><span>18% seeds the next round</span></span>
     </motion.div>}
   </div>;
-}
-
-// 8. the honest part: where every dollar goes, plus the hold fee bleeding in real time.
-export function StepHonest({ reduced }: VisualProps) {
-  const [drained, setDrained] = useState(0.1417);
-  useEffect(() => {
-    if (reduced) return;
-    const id = setInterval(() => setDrained(d => d + 0.02 / 60), 1000);
-    return () => clearInterval(id);
-  }, [reduced]);
-  return <motion.div className="ob-honest" variants={stagger} initial={reduced ? 'show' : 'hidden'} animate="show">
-    <motion.div variants={rise} className="ob-split">
-      <span className="ob-split-caption">every takeover</span>
-      <span className="ob-split-bar"><span className="ob-seg-refund" style={{ width: '75.6%' }}/><span className="ob-seg-pot" style={{ width: '21.9%' }}/><span className="ob-seg-house"/></span>
-      <span className="ob-split-labels"><span>102% back to the last holder</span><span className="ob-gold">rest to the pot</span><span>2.5% house</span></span>
-    </motion.div>
-    <motion.div variants={rise} className="ob-split">
-      <span className="ob-split-caption">when the clock runs out</span>
-      <span className="ob-split-bar"><span className="ob-split-win" style={{ width: '82%' }}/><span className="ob-split-next"/></span>
-      <span className="ob-split-labels"><span className="ob-gold">82% to the holder</span><span>18% to the next round</span></span>
-    </motion.div>
-    <motion.div variants={rise} className="ob-bleed-row">
-      <span className="holder-name ob-name-sm">you</span>
-      <span className="ob-bleed"><span className="bleed-tag">−${drained.toFixed(4)}</span><span className="ob-bleed-rate">holding fee · $0.02/min</span></span>
-    </motion.div>
-  </motion.div>;
 }

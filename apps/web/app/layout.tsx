@@ -24,6 +24,10 @@ export const metadata: Metadata = {
 // from the stylesheet link below. The --sans variable already lists Monument first.
 const fonts = 'https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap';
 
+// First visit: mark <html> before first paint so CSS hides the loading text and the page until the walkthrough mounts
+// (see html[data-intro] in globals.css). The key matches ONBOARDED_KEY in components/onboarding/context.tsx.
+const introScript = "try{if(localStorage.getItem('usurp.onboarded')!=='1')document.documentElement.dataset.intro='1'}catch(e){}";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="en"><head><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/><link href={fonts} rel="stylesheet"/></head><body><a href="#main-content" className="skip-link">skip to the throne</a><Providers><Shell>{children}</Shell></Providers></body></html>;
+  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: introScript }}/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/><link href={fonts} rel="stylesheet"/></head><body><a href="#main-content" className="skip-link">skip to the throne</a><Providers><Shell>{children}</Shell></Providers></body></html>;
 }

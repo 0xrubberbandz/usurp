@@ -51,21 +51,26 @@ test('onboarding: walkthrough first, then connect a wallet and approve usdc; per
   for (const route of ['/leaderboard', '/money']) expect((await request.get(route)).status()).toBe(404);
   await page.goto('/');
   const overlay = page.getByRole('dialog', { name: 'how usurp works' });
+  // a first visit opens straight onto the welcome slide; and the pre-paint hide has lifted
   await expect(overlay.locator('.ob-step-1')).toBeVisible();
+  await expect(overlay.getByRole('heading', { name: 'long live the king. briefly.' })).toBeVisible();
+  await expect(page.locator('html')).not.toHaveAttribute('data-intro');
   await expect(overlay).not.toContainText('practice round');
   await expect(overlay.getByRole('button', { name: 'sound effects' })).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
+  await overlay.getByRole('button', { name: 'show me' }).click();
+  await expect(overlay.locator('.ob-step-2')).toBeVisible();
   await overlay.getByRole('button', { name: 'next' }).click();
   // Trying the example dome is optional; users can continue without a practice round.
   await expect(overlay.getByRole('button', { name: 'next' })).toBeEnabled();
   await overlay.getByRole('button', { name: 'next' }).click();
-  await expect(overlay.locator('.ob-step-3')).toBeVisible();
+  await expect(overlay.locator('.ob-step-4')).toBeVisible();
   await overlay.getByRole('button', { name: 'back', exact: true }).click();
   await expect(overlay.getByText('try it.')).toBeVisible();
   await overlay.getByRole('button', { name: 'try taking the throne for $10.00' }).click();
   await expect(overlay.getByRole('button', { name: 'next' })).toBeEnabled();
-  for (let step = 3; step <= 8; step++) { await overlay.getByRole('button', { name: 'next' }).click(); await expect(overlay.locator(`.ob-step-${step}`)).toBeVisible(); }
-  await expect(overlay).toContainText('sitting still costs you.');
+  for (let step = 4; step <= 8; step++) { await overlay.getByRole('button', { name: 'next' }).click(); await expect(overlay.locator(`.ob-step-${step}`)).toBeVisible(); }
+  await expect(overlay).toContainText('you take the pot.');
   // the wallet comes last: real wallet rows with icons, then an explicit usdc approval
   await overlay.getByRole('button', { name: 'connect wallet' }).click();
   await expect(overlay.locator('.ob-step-9')).toBeVisible();

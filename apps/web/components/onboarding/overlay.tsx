@@ -2,25 +2,24 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Check, Wallet, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useGame } from '../game-context';
 import { money, nextTakePrice, playerName } from '@/lib/game';
 import { isCountryBlocked } from '@/lib/geofence';
 import { walletRows } from '@/lib/wallets';
 import { playSound, stopSounds } from '@/lib/sound';
 import { SoundToggle } from '../sound-toggle';
 import { SlideAudio } from './slide-audio';
-import { useOnboarding } from './context';
-import { MiniCrown, StepClock, StepHonest, StepPot, StepPrice, StepRefund, StepThrone, StepTake, StepWin } from './steps';
+import { useOnboarding, useOnboardingGame } from './context';
+import { MiniCrown, StepClock, StepPot, StepPrice, StepRefund, StepThrone, StepTake, StepWelcome, StepWin } from './steps';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 type Step = { title: string; copy: ReactNode; visual: (reduced: boolean) => ReactNode };
-// Steps 1-8 introduce the game; 9 connects a wallet; 10 approves USDC for the first take.
+// Step 1 welcomes, 2-8 explain the game; 9 connects a wallet; 10 approves USDC for the first take.
 const WALKTHROUGH_END = 8, CONNECT = 9, APPROVE = 10;
 
 // Step 9: connect. Real wallets in live mode (installed ones connect, missing ones link to their download page);
 // in demo mode the same rows simulate a connection and nothing is signed.
 function ConnectStep({ reduced, onConnected, onWatch, connectOnly }: { reduced: boolean; onConnected: () => void; onWatch: () => void; connectOnly: boolean }) {
-  const game = useGame();
+  const game = useOnboardingGame()!;
   const [busy, setBusy] = useState<string | null>(null);
   const [jolt, setJolt] = useState(0);
   const attempted = useRef(false);
@@ -64,7 +63,7 @@ function ConnectStep({ reduced, onConnected, onWatch, connectOnly }: { reduced: 
 // exactly one take at the current price; every later take asks for its own exact price, so a price that jumps while
 // the wallet is open can never spend more than you saw.
 function ApproveStep({ onDone }: { onDone: () => void }) {
-  const game = useGame();
+  const game = useOnboardingGame()!;
   const price = nextTakePrice(game.state, game.now, game.startPrice);
   const approved = game.allowance !== undefined && price > 0n && game.allowance >= price;
   const wasApproved = useRef(approved);
@@ -97,27 +96,27 @@ function ApproveStep({ onDone }: { onDone: () => void }) {
 }
 
 export function OnboardingOverlay() {
-  const { open, mode, finish } = useOnboarding();
-  const game = useGame();
+  const { open, mode, auto, finish } = useOnboarding();
+  const game = useOnboardingGame();
   const reduced = !!useReducedMotion();
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [taken, setTaken] = useState(false);
   const touch = useRef<number | null>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const hasWallet = !!game.address && !game.wrongNetwork;
+  const hasWallet = !!game?.address && !game.wrongNetwork;
   // The walkthrough always starts at the beginning; "connect" from the header opens only the wallet steps.
   useEffect(() => { if (open) { setStep(mode === 'connect' ? CONNECT : 1); setTaken(false); requestAnimationFrame(() => stage.current?.focus()); } }, [open, mode]);
 
   const steps: Step[] = [
+    { title: 'long live the king. briefly.', copy: 'everyone above you got knocked off the throne, and every one of them got paid for it. here’s how.', visual: r => <StepWelcome reduced={r}/> },
     { title: 'one throne.', copy: 'one throne. one holder at a time. everyone can see who’s sitting on it.', visual: r => <StepThrone reduced={r}/> },
     { title: 'anyone can take it.', copy: 'pay the price and it’s yours. instantly. no auction, no permission.', visual: r => <StepTake reduced={r} taken={taken} onTake={() => { setTaken(true); playSound('take'); }}/> },
     { title: 'the price climbs.', copy: 'every takeover makes the next one cost 1.35x more.', visual: r => <StepPrice reduced={r}/> },
     { title: 'get booted, get paid.', copy: 'if someone takes the throne from you, you get back what you paid plus 2%. getting kicked out is profitable.', visual: r => <StepRefund reduced={r}/> },
     { title: 'the clock.', copy: 'every takeover resets the clock to 5 minutes.', visual: r => <StepClock reduced={r}/> },
-    { title: 'the pot.', copy: 'part of every takeover feeds the pot. the pot only grows.', visual: r => <StepPot reduced={r}/> },
-    { title: 'outlast everyone.', copy: 'if the clock runs out while you hold the throne, you take the pot.', visual: r => <StepWin reduced={r}/> },
-    { title: 'the honest part.', copy: <>the money comes from the next person. later takers fund earlier holders’ 2%, whoever holds the throne when the clock runs out takes the pot, and the house takes 2.5% of every takeover. there is no yield, and no guarantee anyone comes after you. while you sit on the throne, a small fee drains from your position into the pot every minute. sitting still costs you.</>, visual: r => <StepHonest reduced={r}/> }
+    { title: 'the pot.', copy: 'part of every takeover feeds the pot, and so does a small fee that drips from whoever’s holding. the pot only grows.', visual: r => <StepPot reduced={r}/> },
+    { title: 'outlast everyone.', copy: 'if the clock runs out while you hold the throne, you take the pot.', visual: r => <StepWin reduced={r}/> }
   ];
   const first = mode === 'connect' ? CONNECT : 1;
   const walkthrough = step <= WALKTHROUGH_END;
@@ -140,11 +139,11 @@ export function OnboardingOverlay() {
   }, [open, next, back]);
 
   const current = walkthrough ? steps[step - 1] : null;
-  const nextPrice = nextTakePrice(game.state, game.now, game.startPrice);
-  const approved = game.allowance !== undefined && nextPrice > 0n && game.allowance >= nextPrice;
+  const nextPrice = game ? nextTakePrice(game.state, game.now, game.startPrice) : 0n;
+  const approved = game?.allowance !== undefined && nextPrice > 0n && game.allowance >= nextPrice;
   const slide = { enter: (d: number) => ({ opacity: 0, x: reduced ? 0 : 24 * d }), center: { opacity: 1, x: 0 }, exit: (d: number) => ({ opacity: 0, x: reduced ? 0 : -24 * d }) };
   const dots = mode === 'connect' ? [CONNECT, APPROVE] : Array.from({ length: APPROVE }, (_, i) => i + 1);
-  return <AnimatePresence>{open && <motion.div className="ob" role="dialog" aria-modal="true" aria-label="how usurp works" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.5, ease: EASE }}
+  return <AnimatePresence>{open && <motion.div className="ob" role="dialog" aria-modal="true" aria-label="how usurp works" initial={auto ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.5, ease: EASE }}
     onPointerDown={e => { if (e.pointerType !== 'mouse') touch.current = e.clientX; }}
     onPointerUp={e => { if (touch.current === null) return; const dx = e.clientX - touch.current; touch.current = null; if (Math.abs(dx) > 50) { if (dx < 0) next(); else back(); } }}>
     <div className="ob-top">
@@ -156,12 +155,13 @@ export function OnboardingOverlay() {
       <AnimatePresence mode="wait" custom={direction} initial={false}>
         <motion.section key={step} className={`ob-step ob-step-${step}`} custom={direction} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: reduced ? 0 : 0.4, ease: EASE }}>
           <SlideAudio step={step} reduced={reduced} active={open}/>
-          {step === CONNECT ? <ConnectStep reduced={reduced} onConnected={connected} onWatch={done} connectOnly={mode === 'connect'}/>
+          {step >= CONNECT && !game ? <div className="ob-connect"><MiniCrown size={64} reduced={reduced}/><p className="ob-copy">one moment…</p></div>
+            : step === CONNECT ? <ConnectStep reduced={reduced} onConnected={connected} onWatch={done} connectOnly={mode === 'connect'}/>
             : step === APPROVE ? <ApproveStep onDone={done}/>
             : <>
               <div className="ob-visual"><div className="ob-visual-play">{current!.visual(reduced)}</div></div>
               <h2 className="ob-title">{current!.title}</h2>
-              <p className={step === WALKTHROUGH_END ? 'ob-copy ob-copy-long' : 'ob-copy'}>{current!.copy}</p>
+              <p className="ob-copy">{current!.copy}</p>
             </>}
         </motion.section>
       </AnimatePresence>
@@ -170,7 +170,7 @@ export function OnboardingOverlay() {
       <span className="ob-nav-side">{step > first && step !== APPROVE && <button className="ob-link" onClick={back}>back</button>}</span>
       <span className="ob-dots" aria-hidden="true">{dots.map(i => <span key={i} className={i === step ? 'ob-dot is-on' : 'ob-dot'}/>)}</span>
       <span className="ob-nav-side ob-nav-right">
-        {walkthrough && <button className="ob-next" onClick={next} disabled={!canNext}>{step === WALKTHROUGH_END ? (hasWallet ? 'continue' : 'connect wallet') : 'next'}<ArrowRight size={17}/></button>}
+        {walkthrough && <button className="ob-next" onClick={next} disabled={!canNext}>{step === 1 ? 'show me' : step === WALKTHROUGH_END ? (hasWallet ? 'continue' : 'connect wallet') : 'next'}<ArrowRight size={17}/></button>}
         {step === APPROVE && <button className="ob-next" onClick={done} disabled={!approved}>take your seat<ArrowRight size={17}/></button>}
       </span>
     </div>

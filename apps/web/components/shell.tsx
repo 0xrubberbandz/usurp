@@ -3,10 +3,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGame } from './game-context';
 import { Ticker } from './ticker';
-import { OnboardingProvider, useOnboarding } from './onboarding/context';
-import { OnboardingOverlay } from './onboarding/overlay';
+import { useOnboarding } from './onboarding/context';
 import { money, playerName } from '@/lib/game';
-import { listenForSoundGestures } from '@/lib/sound';
 import { SoundToggle } from './sound-toggle';
 
 // Connected: truncated address and test USDC balance; the menu copies the address or disconnects (demo mode adds the
@@ -39,14 +37,22 @@ function WalletChip() {
   </div>;
 }
 
-function Frame({ children }: { children: ReactNode }) {
+// Hands the onboarding overlay (which sits above the game provider) every fresh game value.
+function GameMirror() {
+  const game = useGame();
+  const { mirror } = useOnboarding();
+  useEffect(() => mirror(game), [game, mirror]);
+  return null;
+}
+
+export function Shell({ children }: { children: ReactNode }) {
   const { open, start } = useOnboarding();
-  useEffect(listenForSoundGestures, []);
   // While onboarding is open the live page stays mounted underneath, inert and set back slightly; it scales up on close.
   // React 18 does not know the inert attribute, so it is set on the element directly.
   const app = useRef<HTMLDivElement>(null);
   useEffect(() => { if (app.current) app.current.inert = open; }, [open]);
   return <>
+    <GameMirror/>
     <div className={open ? 'app app-behind' : 'app'} ref={app} aria-hidden={open || undefined}>
       <header className="site-header">
         <Link href="/" className="wordmark" aria-label="usurp home"><img className="wordmark-crown" src="/brand/crown.svg" alt="" width={30} height={30}/>usurp.</Link>
@@ -59,10 +65,5 @@ function Frame({ children }: { children: ReactNode }) {
       <main id="main-content">{children}</main>
       <Ticker/>
     </div>
-    <OnboardingOverlay/>
   </>;
-}
-
-export function Shell({ children }: { children: ReactNode }) {
-  return <OnboardingProvider><Frame>{children}</Frame></OnboardingProvider>;
 }

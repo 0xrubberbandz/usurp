@@ -147,19 +147,20 @@ export function playRelease() { return playSound('release'); }
 type Beat = readonly [seconds: number, cue: SoundCue, variation?: number];
 // Timing follows onboarding/steps.tsx. Each slide owns and cancels its entire score.
 function slideBeats(step: number, reduced: boolean): Beat[] {
-  if (reduced) return [[0, (['crown', 'take', 'rise', 'coin', 'tick', 'coin', 'win', 'honest', 'wallet', 'approve'] as SoundCue[])[step - 1] ?? 'crown']];
+  if (reduced) return [[0, (['crown', 'crown', 'take', 'rise', 'coin', 'tick', 'coin', 'win', 'wallet', 'approve'] as SoundCue[])[step - 1] ?? 'crown']];
   switch (step) {
-    case 1: return [[0.25, 'crown'], [0.9, 'rise', 2]];
-    case 2: return [[0.08, 'swoosh'], [0.3, 'wallet']];
-    case 3: return Array.from({ length: 5 }, (_, i) => [0.2 + i * 0.42, 'rise', i]);
-    case 4: return [[0.9, 'take'], [1.5, 'coin'], [2.1, 'coin', 1], [3, 'confirm']];
-    case 5: return [[0, 'honest'], ...Array.from({ length: 48 }, (_, i): Beat => {
+    // the line of succession: a tick per usurper, faster each time, then the crown lands on you
+    case 1: return [...[0.6, 1.15, 1.6, 1.95, 2.25, 2.5].map((at, i): Beat => [at, 'tick', i]), [2.95, 'take'], [3.1, 'crown']];
+    case 2: return [[0.25, 'crown'], [0.9, 'rise', 2]];
+    case 3: return [[0.08, 'swoosh'], [0.3, 'wallet']];
+    case 4: return Array.from({ length: 5 }, (_, i) => [0.2 + i * 0.42, 'rise', i]);
+    case 5: return [[0.9, 'take'], [1.5, 'coin'], [2.1, 'coin', 1], [3, 'confirm']];
+    case 6: return [[0, 'honest'], ...Array.from({ length: 48 }, (_, i): Beat => {
       const tick = i + 1;
       return [tick * 0.11, tick === 15 || tick === 33 ? 'reset' : 'tick', tick];
     }).filter((beat, i) => i % 2 === 0 || beat[1] === 'reset')];
-    case 6: return [[0.35, 'swoosh'], [0.9, 'coin'], [1.02, 'coin', 1], [1.14, 'coin', 2], [1.5, 'confirm']];
-    case 7: return [[0, 'urgent'], [0.32, 'urgent', 1], [0.64, 'urgent'], [0.96, 'urgent', 1], [1.28, 'urgent'], [1.65, 'win'], [2.85, 'crown'], [3.1, 'coin'], [3.3, 'coin', 1], [3.5, 'coin', 2], [5.6, 'confirm']];
-    case 8: return [[0, 'honest'], [0.25, 'tick'], [1, 'honest']];
+    case 7: return [[0.35, 'swoosh'], [0.9, 'coin'], [1.02, 'coin', 1], [1.14, 'coin', 2], [1.5, 'confirm']];
+    case 8: return [[0, 'urgent'], [0.32, 'urgent', 1], [0.64, 'urgent'], [0.96, 'urgent', 1], [1.28, 'urgent'], [1.65, 'win'], [2.85, 'crown'], [3.1, 'coin'], [3.3, 'coin', 1], [3.5, 'coin', 2], [5.6, 'confirm']];
     case 9: return [[0.08, 'wallet']];
     case 10: return [[0.08, 'approve'], [0.3, 'coin']];
     default: return [];

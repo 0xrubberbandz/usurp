@@ -39,10 +39,10 @@ test('intro audio: every slide, immediate mute, cancellation, and saved preferen
   expect((await probe(page)).contexts).toBe(1);
   for (let step = 2; step <= 8; step++) {
     const before = (await probe(page)).nodes.length;
-    await overlay.getByRole('button', { name: 'next', exact: true }).click();
+    await overlay.getByRole('button', { name: step === 2 ? 'show me' : 'next', exact: true }).click();
     await expect(overlay.locator(`.ob-step-${step}`)).toBeVisible();
     await expect.poll(async () => (await probe(page)).nodes.length).toBeGreaterThan(before);
-    if (step === 5) {
+    if (step === 6) {
       await toggle.click();
       await expect(toggle).toHaveText('sound off');
       expect((await probe(page)).nodes.every(node => node.cancelled || node.ended)).toBe(true);
@@ -91,7 +91,7 @@ test('the intro still works when Web Audio is unavailable', async ({ page }) => 
   await page.goto('/');
   const overlay = page.getByRole('dialog', { name: 'how usurp works' });
   await overlay.getByRole('button', { name: 'sound effects' }).click();
-  await overlay.getByRole('button', { name: 'next', exact: true }).click();
+  await overlay.getByRole('button', { name: 'show me', exact: true }).click();
   await overlay.getByRole('button', { name: 'next', exact: true }).click();
   await expect(overlay.locator('.ob-step-3')).toBeVisible();
   expect(errors).toEqual([]);
