@@ -225,6 +225,26 @@ function Ready({ onReady }: { onReady: () => void }) {
   return null;
 }
 
+// These children must keep their identity across hover/press updates. Drei recaptures the
+// environment and the composer rebuilds its passes when their children change.
+const StudioEnvironment = memo(function StudioEnvironment() {
+  return <Environment resolution={256} frames={1}>
+    <Lightformer form="rect" intensity={2.4} position={[-3, 5, 2]} scale={[6, 4, 1]} target={ORIGIN}/>
+    <Lightformer form="rect" intensity={4} position={[-3.4, 1.2, 0.4]} rotation-y={Math.PI / 2} scale={[0.22, 6, 1]}/>
+    <Lightformer form="rect" intensity={4} position={[3.4, 1.2, 0.4]} rotation-y={-Math.PI / 2} scale={[0.22, 6, 1]}/>
+    <Lightformer form="rect" color="#B28BE7" intensity={1.2} position={[-2.6, 0.6, -3]} scale={[4, 2.5, 1]} target={ORIGIN}/>
+    <Lightformer form="rect" color="#58EAFA" intensity={1.2} position={[2.8, 0.6, -2.6]} scale={[4, 2.5, 1]} target={ORIGIN}/>
+  </Environment>;
+});
+
+const SceneEffects = memo(function SceneEffects() {
+  // The composer bypasses the renderer's MSAA and tone mapping, so both are set here.
+  return <EffectComposer multisampling={8} enableNormalPass={false}>
+    <Bloom mipmapBlur intensity={0.6} luminanceThreshold={1} luminanceSmoothing={0.15} radius={0.6}/>
+    <ToneMapping mode={ACES_FILMIC}/>
+  </EffectComposer>;
+});
+
 function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: DomeSceneProps) {
   const invalidate = useThree(s => s.invalidate);
   const canvas = useThree(s => s.gl.domElement);
@@ -317,13 +337,7 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
   const seat = useMemo(() => to([y, b], (py: number, pb: number) => SEAT + py + pb), [y, b]);
   return <>
     <Framing/>
-    <Environment resolution={256} frames={1}>
-      <Lightformer form="rect" intensity={2.4} position={[-3, 5, 2]} scale={[6, 4, 1]} target={ORIGIN}/>
-      <Lightformer form="rect" intensity={4} position={[-3.4, 1.2, 0.4]} rotation-y={Math.PI / 2} scale={[0.22, 6, 1]}/>
-      <Lightformer form="rect" intensity={4} position={[3.4, 1.2, 0.4]} rotation-y={-Math.PI / 2} scale={[0.22, 6, 1]}/>
-      <Lightformer form="rect" color="#B28BE7" intensity={1.2} position={[-2.6, 0.6, -3]} scale={[4, 2.5, 1]} target={ORIGIN}/>
-      <Lightformer form="rect" color="#58EAFA" intensity={1.2} position={[2.8, 0.6, -2.6]} scale={[4, 2.5, 1]} target={ORIGIN}/>
-    </Environment>
+    <StudioEnvironment/>
     <a.directionalLight position={[-3, 5, 3]} intensity={key.to(v => 2.1 * v)}/>
     <ambientLight intensity={0.25}/>
     <group ref={assembly} rotation-y={YAW}>
@@ -342,11 +356,7 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
         <pointLight ref={inner} position={[0, 0.2, 0]} distance={2.4} decay={2} color={CROWN.lilac} intensity={INNER}/>
       </a.group>
     </group>
-    {/* composer bypasses the renderer's MSAA and tone mapping, so both are set here */}
-    <EffectComposer multisampling={8} enableNormalPass={false}>
-      <Bloom mipmapBlur intensity={0.6} luminanceThreshold={1} luminanceSmoothing={0.15} radius={0.6}/>
-      <ToneMapping mode={ACES_FILMIC}/>
-    </EffectComposer>
+    <SceneEffects/>
     <Ready onReady={onReady}/>
   </>;
 }

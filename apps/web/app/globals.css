@@ -180,13 +180,13 @@ body:has(.ob) .loading-screen { visibility: hidden; }
 /* ticker: fixed at the bottom edge on every page */
 .ticker { position: fixed; left: 0; right: 0; bottom: 0; height: var(--ticker-h); background: transparent; display: flex; align-items: center; gap: 14px; padding: 0 32px; font-size: 14px; z-index: 40; overflow: hidden; }
 .ticker-track { flex: 1; min-width: 0; position: relative; height: 100%; display: flex; align-items: center; overflow: hidden; }
-.ticker-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.ticker-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
 .ticker-line strong { color: var(--ink); font-weight: 500; }
 .ticker-line .numeric { color: var(--ink); font-size: 14px; }
-.ticker-sep { padding: 0 6px; opacity: .6; }
+.ticker-sep { padding: 0 6px; }
 .ticker-profit { color: var(--green); }
 .ticker-loss { color: var(--ink); }
-.ticker > a { display: flex; align-items: center; gap: 5px; color: var(--muted); white-space: nowrap; }
+.ticker > a { display: flex; align-items: center; gap: 5px; color: var(--ink); white-space: nowrap; }
 .ticker > a:hover { color: var(--ink); }
 
 /* buttons */

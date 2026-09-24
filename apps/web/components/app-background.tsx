@@ -18,9 +18,11 @@ export function AppBackground() {
     return () => { document.removeEventListener('visibilitychange', sync); element.pause(); };
   }, [reduced]);
   return <div className="app-background" aria-hidden="true">
-    <video ref={video} autoPlay={!reduced} loop muted playsInline preload={reduced ? 'none' : 'auto'}
+    {/* Playback is started in the effect so server/client markup agrees, including reduced motion. */}
+    <video ref={video} loop muted playsInline preload="none"
       poster="/media/intro-background.webp" disablePictureInPicture disableRemotePlayback tabIndex={-1}>
       <source src="/media/intro-background.mp4" type="video/mp4"/>
+      <source src="/media/intro-background.webm" type="video/webm"/>
     </video>
   </div>;
 }
