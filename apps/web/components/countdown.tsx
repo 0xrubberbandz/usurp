@@ -3,6 +3,7 @@ import NumberFlow, { NumberFlowGroup } from '@number-flow/react';
 import { useEffect, useRef } from 'react';
 import { timeLabel } from '@/lib/game';
 import { EASE } from './pot-number';
+import { playSound } from '@/lib/sound';
 
 const SPIN = { duration: 350, easing: EASE };
 const TWO = { minimumIntegerDigits: 2 } as const;
@@ -10,10 +11,14 @@ const SECONDS_DIGITS = { 1: { max: 5 } }; // tens of seconds wrap 0 -> 5
 
 // mm:ss from two NumberFlow instances: only the digits that change roll. Counting down rolls downward;
 // a takeover reset back up to 05:00 rolls upward for that one transition.
-export function Countdown({ seconds }: { seconds: number }) {
+export function Countdown({ seconds, audible = false }: { seconds: number; audible?: boolean }) {
   const previous = useRef(seconds);
   const trend = seconds > previous.current ? 1 : -1;
-  useEffect(() => { previous.current = seconds; }, [seconds]);
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = seconds;
+    if (audible && seconds > 0 && seconds <= 60 && seconds < before) return playSound(seconds <= 10 ? 'urgent' : 'tick', seconds);
+  }, [seconds, audible]);
   return <div className="countdown" role="timer" aria-label={`${timeLabel(seconds)} left`}>
     <NumberFlowGroup>
       <NumberFlow value={Math.floor(seconds / 60)} format={TWO} trend={trend} spinTiming={SPIN} transformTiming={SPIN} aria-hidden="true"/>

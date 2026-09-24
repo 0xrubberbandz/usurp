@@ -1,13 +1,13 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGame } from './game-context';
 import { Ticker } from './ticker';
 import { OnboardingProvider, useOnboarding } from './onboarding/context';
 import { OnboardingOverlay } from './onboarding/overlay';
 import { money, playerName } from '@/lib/game';
-import { setSoundEnabled, soundEnabled, subscribeSound } from '@/lib/sound';
+import { listenForSoundGestures } from '@/lib/sound';
+import { SoundToggle } from './sound-toggle';
 
 // Connected: truncated address and test USDC balance; the menu copies the address or disconnects (demo mode adds the
 // round controls). Not connected: "connect" reopens only the connect step of onboarding.
@@ -41,7 +41,7 @@ function WalletChip() {
 
 function Frame({ children }: { children: ReactNode }) {
   const { open, start } = useOnboarding();
-  const sound = useSyncExternalStore(subscribeSound, soundEnabled, () => false);
+  useEffect(listenForSoundGestures, []);
   // While onboarding is open the live page stays mounted underneath, inert and set back slightly; it scales up on close.
   // React 18 does not know the inert attribute, so it is set on the element directly.
   const app = useRef<HTMLDivElement>(null);
@@ -52,7 +52,7 @@ function Frame({ children }: { children: ReactNode }) {
         <Link href="/" className="wordmark" aria-label="usurp home"><img className="wordmark-crown" src="/brand/crown.svg" alt="" width={30} height={30}/>usurp.</Link>
         <div className="header-actions">
           <button className="text-link" onClick={() => start('full')}>how it works</button>
-          <button className="sound-toggle" aria-label="button sound" aria-pressed={sound} title={sound ? 'sound on' : 'sound off'} onClick={() => setSoundEnabled(!sound)}>{sound ? <Volume2 size={17}/> : <VolumeX size={17}/>}</button>
+          <SoundToggle/>
           <WalletChip/>
         </div>
       </header>

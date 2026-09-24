@@ -9,7 +9,7 @@ import { DomeButton } from '../dome-button';
 import { EASE, USD } from '../pot-number';
 import { Coronation } from '../coronation';
 
-// Every visual is a scripted practice round: the numbers are fake and tiny, and nothing here can send a transaction.
+// Intro illustrations use example amounts; nothing here can send a transaction.
 export type VisualProps = { reduced: boolean };
 const ease = [0.22, 1, 0.36, 1] as const;
 const usd = (n: number) => `$${n.toFixed(2)}`;
@@ -87,15 +87,15 @@ export function StepThrone({ reduced }: VisualProps) {
   </div>;
 }
 
-// 2. anyone can take it. The user presses the mini dome themselves; nothing is sent anywhere.
+// 2. anyone can take it. Trying the mini dome is optional; nothing is sent anywhere.
 export function StepTake({ reduced, taken, onTake }: VisualProps & { taken: boolean; onTake: () => void }) {
   return <motion.div className="ob-visual-inner" variants={stagger} initial={reduced ? 'show' : 'hidden'} animate="show">
     <motion.div variants={rise}><MiniCrown jolt={taken ? 1 : 0} size={64} reduced={reduced}/></motion.div>
     <motion.div variants={rise} className="ob-shard-anchor"><NameSlot name={taken ? 'you' : 'inkfeather'} reduced={reduced}/><Shards burst={taken && !reduced ? 1 : 0}/></motion.div>
     {/* the prompt sits between the name and the dome, pointing down at it */}
-    {!taken && <motion.span variants={rise} className="ob-hint"><ArrowDown size={16} strokeWidth={2.5} aria-hidden="true"/>press it.</motion.span>}
+    {!taken && <motion.span variants={rise} className="ob-hint"><ArrowDown size={16} strokeWidth={2.5} aria-hidden="true"/>try it.</motion.span>}
     <motion.div variants={rise} className="ob-mini-dome">
-      <DomeButton size="mini" label={taken ? 'you hold the throne' : 'take the throne'} price={taken ? undefined : 10} ariaLabel={taken ? 'you hold the practice throne' : 'take the practice throne for $10.00'}
+      <DomeButton size="mini" label={taken ? 'you hold the throne' : 'take the throne'} price={taken ? undefined : 10} ariaLabel={taken ? 'you hold the example throne' : 'try taking the throne for $10.00'}
         mode={taken ? 'disabled' : 'idle'} onActivate={onTake}/>
     </motion.div>
   </motion.div>;

@@ -4,12 +4,16 @@ import { Providers } from '@/components/providers';
 import { Shell } from '@/components/shell';
 import './globals.css';
 
+const title = 'usurp';
+const description = 'one throne. anyone can take it. get taken, make 2%. outlast everyone, take the pot.';
+const ogImage = { url: '/og-default.png', width: 1200, height: 630, alt: 'usurp, one throne' };
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  title: { default: 'usurp. one throne. zero loyalty.', template: '%s · usurp.' },
-  description: 'an onchain king-of-the-hill game on monad. take the throne. survive the clock. claim the pot.',
-  openGraph: { title: 'usurp. one throne. zero loyalty.', description: 'an onchain king-of-the-hill game. built on monad.', images: ['/api/og/eviction'] },
-  twitter: { card: 'summary_large_image' },
+  metadataBase: new URL('https://usurp.fun'),
+  title,
+  description,
+  openGraph: { title, description, images: [ogImage], type: 'website', siteName: 'usurp', url: 'https://usurp.fun' },
+  twitter: { card: 'summary_large_image', title, description, images: [ogImage] },
   icons: { icon: '/brand/crown.svg', apple: '/brand/crown.png' }
 };
 

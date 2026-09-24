@@ -121,7 +121,7 @@ export function Throne() {
         {!empty && active && !expired && <><span className="holder-sep" aria-hidden="true">·</span><span className="bleed-tag" tabIndex={0} aria-label={`holding fee: $${money(holdFee(state, now))} taken so far, $${money(state.previousPrice * 200n / 600000n)} per minute`} data-tip={`holding fee · $${money(state.previousPrice * 200n / 600000n)}/min out of their refund`}>−${money(holdFee(state, now))}</span></>}
       </div>
       <div className="pot-section" aria-label={`pot $${money(displayPot)} usdc`}><PotNumber value={displayPot} announceKey={lastSettle?.id ?? latest?.id}/></div>
-      <div className={`timer-section ${finalMinute ? 'urgent' : ''}`}><Countdown seconds={empty ? DURATION : remaining}/></div>
+      <div className={`timer-section ${finalMinute ? 'urgent' : ''}`}><Countdown seconds={empty ? DURATION : remaining} audible={!onboarding.open && !empty && active}/></div>
       <div className="take-panel">
         <DomeButton label={label} price={showPrice ? Number(nextPrice) / 1e6 : undefined} ariaLabel={showPrice ? `${expired ? 'take the next throne' : 'take the throne'} for $${price}` : label} mode={mode} bounceKey={bounceKey} onActivate={open} paused={onboarding.open}/>
         {/* nobody wants to take? anyone can still close out the finished round and pay the winner */}

@@ -6,12 +6,15 @@ import { useGame } from '../game-context';
 import { money, nextTakePrice, playerName } from '@/lib/game';
 import { isCountryBlocked } from '@/lib/geofence';
 import { walletRows } from '@/lib/wallets';
+import { playSound, stopSounds } from '@/lib/sound';
+import { SoundToggle } from '../sound-toggle';
+import { SlideAudio } from './slide-audio';
 import { useOnboarding } from './context';
 import { MiniCrown, StepClock, StepHonest, StepPot, StepPrice, StepRefund, StepThrone, StepTake, StepWin } from './steps';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 type Step = { title: string; copy: ReactNode; visual: (reduced: boolean) => ReactNode };
-// Steps 1-8 are the practice-round walkthrough; 9 connects a wallet; 10 approves USDC for the first take.
+// Steps 1-8 introduce the game; 9 connects a wallet; 10 approves USDC for the first take.
 const WALKTHROUGH_END = 8, CONNECT = 9, APPROVE = 10;
 
 // Step 9: connect. Real wallets in live mode (installed ones connect, missing ones link to their download page);
@@ -28,7 +31,8 @@ function ConnectStep({ reduced, onConnected, onWatch, connectOnly }: { reduced: 
   useEffect(() => {
     if (!ready || !attempted.current) return;
     setJolt(j => j + 1);
-    const id = setTimeout(onConnected, 800); return () => clearTimeout(id);
+    const stop = playSound('confirm');
+    const id = setTimeout(onConnected, 800); return () => { clearTimeout(id); stop(); };
   }, [ready, onConnected]);
   async function connect(key: string, id: string) { attempted.current = true; setBusy(key); await game.connect(id); setBusy(null); }
   async function switchNetwork() { attempted.current = true; setBusy('switch'); await game.switchNetwork(); setBusy(null); }
@@ -63,6 +67,12 @@ function ApproveStep({ onDone }: { onDone: () => void }) {
   const game = useGame();
   const price = nextTakePrice(game.state, game.now, game.startPrice);
   const approved = game.allowance !== undefined && price > 0n && game.allowance >= price;
+  const wasApproved = useRef(approved);
+  useEffect(() => {
+    const changed = approved && !wasApproved.current;
+    wasApproved.current = approved;
+    if (changed) return playSound('confirm');
+  }, [approved]);
   const balanceKnown = game.demo || game.balance !== undefined;
   const short = !game.demo && game.balance !== undefined && game.balance < price;
   return <div className="ob-connect ob-approve">
@@ -101,7 +111,7 @@ export function OnboardingOverlay() {
 
   const steps: Step[] = [
     { title: 'one throne.', copy: 'one throne. one holder at a time. everyone can see who’s sitting on it.', visual: r => <StepThrone reduced={r}/> },
-    { title: 'anyone can take it.', copy: 'pay the price and it’s yours. instantly. no auction, no permission.', visual: r => <StepTake reduced={r} taken={taken} onTake={() => setTaken(true)}/> },
+    { title: 'anyone can take it.', copy: 'pay the price and it’s yours. instantly. no auction, no permission.', visual: r => <StepTake reduced={r} taken={taken} onTake={() => { setTaken(true); playSound('take'); }}/> },
     { title: 'the price climbs.', copy: 'every takeover makes the next one cost 1.35x more.', visual: r => <StepPrice reduced={r}/> },
     { title: 'get booted, get paid.', copy: 'if someone takes the throne from you, you get back what you paid plus 2%. getting kicked out is profitable.', visual: r => <StepRefund reduced={r}/> },
     { title: 'the clock.', copy: 'every takeover resets the clock to 5 minutes.', visual: r => <StepClock reduced={r}/> },
@@ -111,9 +121,9 @@ export function OnboardingOverlay() {
   ];
   const first = mode === 'connect' ? CONNECT : 1;
   const walkthrough = step <= WALKTHROUGH_END;
-  const canNext = walkthrough && !(step === 2 && !taken);
-  const go = useCallback((to: number) => { setDirection(to > step ? 1 : -1); setStep(to); }, [step]);
-  const done = useCallback(() => finish(mode === 'full'), [finish, mode]);
+  const canNext = walkthrough;
+  const go = useCallback((to: number) => { stopSounds(); setDirection(to > step ? 1 : -1); setStep(to); }, [step]);
+  const done = useCallback(() => { stopSounds(); playSound('confirm'); finish(mode === 'full'); }, [finish, mode]);
   const next = useCallback(() => { if (canNext) go(step + 1); }, [canNext, step, go]);
   const back = useCallback(() => { if (step > first) go(step - 1); }, [step, first, go]);
   const connected = useCallback(() => go(APPROVE), [go]);
@@ -138,13 +148,14 @@ export function OnboardingOverlay() {
     onPointerDown={e => { if (e.pointerType !== 'mouse') touch.current = e.clientX; }}
     onPointerUp={e => { if (touch.current === null) return; const dx = e.clientX - touch.current; touch.current = null; if (Math.abs(dx) > 50) { if (dx < 0) next(); else back(); } }}>
     <div className="ob-top">
-      {walkthrough ? <span className="ob-chip">practice round</span> : <span/>}
-      {mode === 'connect' ? <button className="ob-link" onClick={() => finish(false)} aria-label="close"><X size={18}/></button>
+      <SoundToggle label/>
+      {mode === 'connect' ? <button className="ob-link" onClick={() => { stopSounds(); finish(false); }} aria-label="close"><X size={18}/></button>
         : walkthrough ? <button className="ob-link" onClick={() => go(CONNECT)}>skip</button> : <span/>}
     </div>
     <div className="ob-stage" ref={stage} tabIndex={-1}>
       <AnimatePresence mode="wait" custom={direction} initial={false}>
         <motion.section key={step} className={`ob-step ob-step-${step}`} custom={direction} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: reduced ? 0 : 0.4, ease: EASE }}>
+          <SlideAudio step={step} reduced={reduced} active={open}/>
           {step === CONNECT ? <ConnectStep reduced={reduced} onConnected={connected} onWatch={done} connectOnly={mode === 'connect'}/>
             : step === APPROVE ? <ApproveStep onDone={done}/>
             : <>

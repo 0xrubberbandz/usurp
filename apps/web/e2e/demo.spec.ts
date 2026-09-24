@@ -52,13 +52,17 @@ test('onboarding: walkthrough first, then connect a wallet and approve usdc; per
   await page.goto('/');
   const overlay = page.getByRole('dialog', { name: 'how usurp works' });
   await expect(overlay.locator('.ob-step-1')).toBeVisible();
-  await expect(overlay).toContainText('practice round');
+  await expect(overlay).not.toContainText('practice round');
+  await expect(overlay.getByRole('button', { name: 'sound effects' })).toBeVisible();
   await expect(page.getByRole('navigation')).toHaveCount(0);
   await overlay.getByRole('button', { name: 'next' }).click();
-  // step 2: next stays disabled until the practice dome is pressed
-  await expect(overlay.getByRole('button', { name: 'next' })).toBeDisabled();
-  await expect(overlay.getByText('press it.')).toBeVisible();
-  await overlay.getByRole('button', { name: 'take the practice throne for $10.00' }).click();
+  // Trying the example dome is optional; users can continue without a practice round.
+  await expect(overlay.getByRole('button', { name: 'next' })).toBeEnabled();
+  await overlay.getByRole('button', { name: 'next' }).click();
+  await expect(overlay.locator('.ob-step-3')).toBeVisible();
+  await overlay.getByRole('button', { name: 'back', exact: true }).click();
+  await expect(overlay.getByText('try it.')).toBeVisible();
+  await overlay.getByRole('button', { name: 'try taking the throne for $10.00' }).click();
   await expect(overlay.getByRole('button', { name: 'next' })).toBeEnabled();
   for (let step = 3; step <= 8; step++) { await overlay.getByRole('button', { name: 'next' }).click(); await expect(overlay.locator(`.ob-step-${step}`)).toBeVisible(); }
   await expect(overlay).toContainText('sitting still costs you.');
