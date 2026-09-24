@@ -7,7 +7,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import * as THREE from 'three';
 
 export type DomeMode = 'idle' | 'urgent' | 'critical' | 'disabled' | 'pending';
-export type DomeSceneProps = { pressed: boolean; hovered: boolean; mode: DomeMode; bounceKey?: string; compact: boolean; reduced: boolean; paused?: boolean; onReady: () => void };
+export type DomeSceneProps = { pressed: boolean; mode: DomeMode; bounceKey?: string; compact: boolean; reduced: boolean; paused?: boolean; onReady: () => void };
 
 // ---- dimensions (floor at y = 0) ----
 const W = 2, FEET_H = 0.05, BODY_H = 0.55, CORNER = 0.1;
@@ -17,9 +17,9 @@ const R = 0.66; // glass shell radius
 const CORE_R = R * 0.82;
 const SEAT = PLATE_TOP - 0.035; // dome equator sits below the plate, inside the chrome collar
 const COLLAR = R + 0.055;
-const BOUNCE = 0.09, HOVER_LIFT = 0.025 * R;
+const BOUNCE = 0.09, FRAMING_PAD = 0.025 * R;
 const YAW = THREE.MathUtils.degToRad(35), SWAY = THREE.MathUtils.degToRad(3), PARALLAX = THREE.MathUtils.degToRad(5);
-const PRESS = { tension: 600, friction: 22 }, RELEASE = { tension: 400, friction: 14 }, HOVER = { tension: 900, friction: 60 };
+const PRESS = { tension: 600, friction: 22 }, RELEASE = { tension: 400, friction: 14 }, REST = { tension: 900, friction: 60 };
 const INNER = 3.2;
 const PITCH = THREE.MathUtils.degToRad(32), FOV = 28, MARGIN = 1.15;
 // postprocessing's ToneMappingMode.ACES_FILMIC (the package is a transitive dependency, not importable under pnpm)
@@ -139,14 +139,14 @@ function shadowTexture() {
   return shadowCache;
 }
 
-// ---- framing: fit the most extreme pose (sway + parallax + bounce + hover) plus the contact shadow, with margin ----
+// ---- framing: fit the most extreme pose (sway + parallax + bounce) plus the contact shadow, with margin ----
 function silhouettePoints() {
   const pts: THREE.Vector3[] = [];
   const h = W / 2 + 0.2; // shadow spills a little past the footprint
   for (const x of [-1, 1]) for (const z of [-1, 1]) { pts.push(new THREE.Vector3(x * W / 2, PLATE_TOP + 0.02, z * W / 2), new THREE.Vector3(x * h, 0, z * h)); }
   for (let i = 0; i < 24; i++) { const t = i / 24 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(t) * (COLLAR + 0.05), PLATE_TOP + 0.03, Math.sin(t) * (COLLAR + 0.05))); }
-  for (let i = 0; i < 12; i++) { const t = i / 12 * Math.PI * 2; for (const e of [0.3, 0.7]) pts.push(new THREE.Vector3(Math.cos(t) * R * Math.cos(e), SEAT + BOUNCE + HOVER_LIFT + R * Math.sin(e), Math.sin(t) * R * Math.cos(e))); }
-  pts.push(new THREE.Vector3(0, SEAT + R + BOUNCE + HOVER_LIFT, 0));
+  for (let i = 0; i < 12; i++) { const t = i / 12 * Math.PI * 2; for (const e of [0.3, 0.7]) pts.push(new THREE.Vector3(Math.cos(t) * R * Math.cos(e), SEAT + BOUNCE + FRAMING_PAD + R * Math.sin(e), Math.sin(t) * R * Math.cos(e))); }
+  pts.push(new THREE.Vector3(0, SEAT + R + BOUNCE + FRAMING_PAD, 0));
   return pts;
 }
 const SILHOUETTE = silhouettePoints();
@@ -185,7 +185,7 @@ function Framing() {
 }
 
 // ---- the animated state every frame reads from ----
-type Live = { swirl: number; speed: number; urgency: number; sat: number; flash: number; sweep: number; sway: number; px: number; py: number; vx: number; vy: number; tx: number; ty: number };
+type Live = { swirl: number; urgency: number; sat: number; flash: number; sweep: number; sway: number; px: number; py: number; vx: number; vy: number; tx: number; ty: number };
 
 function Screw({ x, z, turn }: { x: number; z: number; turn: number }) {
   return <group position={[x, PLATE_TOP - 0.004, z]} rotation-y={turn}>
@@ -225,7 +225,7 @@ function Ready({ onReady }: { onReady: () => void }) {
   return null;
 }
 
-// These children must keep their identity across hover/press updates. Drei recaptures the
+// These children must keep their identity across interaction updates. Drei recaptures the
 // environment and the composer rebuilds its passes when their children change.
 const StudioEnvironment = memo(function StudioEnvironment() {
   return <Environment resolution={256} frames={1}>
@@ -255,12 +255,12 @@ const Underlighting = memo(function Underlighting() {
   </>;
 });
 
-function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: DomeSceneProps) {
+function Scene({ pressed, mode, bounceKey, reduced, paused, onReady }: DomeSceneProps) {
   const invalidate = useThree(s => s.invalidate);
   const canvas = useThree(s => s.gl.domElement);
   const assembly = useRef<THREE.Group>(null);
   const inner = useRef<THREE.PointLight>(null);
-  const live = useRef<Live>({ swirl: 0, speed: 1, urgency: 0, sat: 1, flash: 0, sweep: -1.4, sway: 1, px: 0, py: 0, vx: 0, vy: 0, tx: 0, ty: 0 });
+  const live = useRef<Live>({ swirl: 0, urgency: 0, sat: 1, flash: 0, sweep: -1.4, sway: 1, px: 0, py: 0, vx: 0, vy: 0, tx: 0, ty: 0 });
   const uniforms = useMemo(() => ({
     uTime: { value: 0 }, uUrgency: { value: 0 }, uPulse: { value: 0 }, uPress: { value: 0 }, uSat: { value: 1 }, uFlash: { value: 0 }, uPending: { value: 0 }, uSweep: { value: -1.4 }, uLift: { value: 1.22 }, uChroma: { value: 3.0 },
     uLilac: { value: color(CROWN.lilac) }, uLilacHi: { value: color(CROWN.lilacHi) }, uCyan: { value: color(CROWN.cyan) }, uCyanHi: { value: color(CROWN.cyanHi) },
@@ -271,8 +271,8 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
 
   // Press mechanics: react-spring only. Reduced motion keeps a plain depth change.
   const wasPressed = useRef(false);
-  const config = pressed ? PRESS : wasPressed.current ? RELEASE : HOVER;
-  const { y, sy, key, glow } = useSpring({ y: pressed ? -0.14 * R : hovered ? HOVER_LIFT : 0, sy: pressed ? 0.95 : 1, key: hovered && !pressed ? 1.1 : 1, glow: pressed ? 1 : 0, config, immediate: reduced });
+  const config = pressed ? PRESS : wasPressed.current ? RELEASE : REST;
+  const { y, sy, glow } = useSpring({ y: pressed ? -0.14 * R : 0, sy: pressed ? 0.95 : 1, glow: pressed ? 1 : 0, config, immediate: reduced });
   useEffect(() => {
     if (wasPressed.current && !pressed && !reduced) live.current.flash = 1; // release: the core flashes bright for 150ms
     wasPressed.current = pressed; invalidate();
@@ -284,7 +284,7 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
     void bounce.start({ to: [{ b: BOUNCE, config: { tension: 900, friction: 16 } }, { b: 0, config: RELEASE }] });
     invalidate();
   }, [bounceKey, bounce, invalidate, reduced]);
-  useEffect(() => { invalidate(); }, [hovered, mode, reduced, paused, invalidate]);
+  useEffect(() => { invalidate(); }, [mode, reduced, paused, invalidate]);
 
   // Desktop pointer parallax: up to 5 degrees toward the cursor.
   useEffect(() => {
@@ -311,9 +311,8 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
     const step = (from: number, target: number) => reduced ? target : from < target ? Math.min(target, from + dt / 0.6) : Math.max(target, from - dt / 0.6);
     s.urgency = step(s.urgency, red ? 1 : 0);
     s.sat = step(s.sat, off ? 0.08 : 1);
-    s.speed += ((hovered ? 1.45 : 1) - s.speed) * Math.min(1, dt * 6);
     const swirling = moving && !off;
-    if (swirling) s.swirl += dt * s.speed;
+    if (swirling) s.swirl += dt;
     // beat: 1/s in the final minute, phase-locked to the page-edge vignette through the wall clock; tighter in the last 10s
     let pulse = 0;
     if (moving && mode === 'urgent') pulse = 0.5 - 0.5 * Math.cos(2 * Math.PI * (now % 1000) / 1000);
@@ -339,8 +338,8 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
     }
 
     const settling = Math.abs(s.px - s.tx * PARALLAX) > 1e-4 || Math.abs(s.vx) > 1e-4 || Math.abs(s.py - s.ty * PARALLAX * 0.5) > 1e-4 || (!swirling && s.sway > 0) || s.flash > 0
-      || Math.abs(s.urgency - (red ? 1 : 0)) > 0 || Math.abs(s.sat - (off ? 0.08 : 1)) > 0 || Math.abs(s.speed - (hovered ? 1.45 : 1)) > 1e-3;
-    const springs = y.isAnimating || sy.isAnimating || key.isAnimating || glow.isAnimating || b.isAnimating;
+      || Math.abs(s.urgency - (red ? 1 : 0)) > 0 || Math.abs(s.sat - (off ? 0.08 : 1)) > 0;
+    const springs = y.isAnimating || sy.isAnimating || glow.isAnimating || b.isAnimating;
     if (!document.hidden && (swirling || pending || springs || (moving && settling))) invalidate();
   });
 
@@ -348,7 +347,8 @@ function Scene({ pressed, hovered, mode, bounceKey, reduced, paused, onReady }: 
   return <>
     <Framing/>
     <StudioEnvironment/>
-    <a.directionalLight position={[-3, 5, 3]} intensity={key.to(v => 2.1 * v)}/>
+    {/* Keep illumination constant when the pointer crosses the button; only a press produces a flash. */}
+    <directionalLight position={[-3, 5, 3]} intensity={2.1}/>
     <ambientLight intensity={0.25}/>
     <group ref={assembly} rotation-y={YAW}>
       <Underlighting/>

@@ -31,7 +31,6 @@ type Props = { label: string; price?: number; ariaLabel: string; mode: DomeMode;
 // A real <button> owns every interaction and all accessibility; the 3D canvas inside is only a picture of it.
 export function DomeButton({ label, price, ariaLabel, mode, bounceKey, onActivate, size = 'full', paused = false }: Props) {
   const [pressed, setPressed] = useState(false);
-  const [hovered, setHovered] = useState(false);
   const [ready, setReady] = useState(false);
   const [compact, setCompact] = useState(false);
   const [reduced, setReduced] = useState(false);
@@ -97,11 +96,11 @@ export function DomeButton({ label, price, ariaLabel, mode, bounceKey, onActivat
   }
 
   return <button type="button" className={size === 'mini' ? 'dome-button dome-mini' : 'dome-button'} data-mode={mode} data-ring={ring || undefined} aria-label={ariaLabel} aria-disabled={blocked || busy || undefined} aria-busy={busy || undefined}
-    onPointerDown={onPointerDown} onPointerUp={() => release()} onPointerEnter={e => { if (e.pointerType === 'mouse') setHovered(true); }} onPointerLeave={() => { setHovered(false); cancel(); }}
+    onPointerDown={onPointerDown} onPointerUp={() => release()} onPointerLeave={cancel}
     onClick={onClick} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onFocus={() => setRing(tabbing)} onBlur={() => { setRing(false); keyHeld.current = false; cancel(); }}>
     <span className={`dome-slot${shaking ? ' is-shaking' : ''}`} onAnimationEnd={() => setShaking(false)} aria-hidden="true">
       <span className="dome-canvas" style={{ opacity: ready ? 1 : 0 }}>
-        <SceneBoundary><DomeScene pressed={pressed} hovered={hovered} mode={mode} bounceKey={bounceKey} compact={compact} reduced={reduced} paused={paused} onReady={onReady}/></SceneBoundary>
+        <SceneBoundary><DomeScene pressed={pressed} mode={mode} bounceKey={bounceKey} compact={compact} reduced={reduced} paused={paused} onReady={onReady}/></SceneBoundary>
       </span>
     </span>
     <span className="dome-label">{label}</span>
